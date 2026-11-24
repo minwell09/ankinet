@@ -92,9 +92,12 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
     loadQueue();
   }
 
-  Future<void> loadQueue() async {
+  Future<void> loadQueue({bool ignoreDailyNewLimit = false}) async {
     state = state.copyWith(isLoading: true, errorMessage: null, clearSnackbar: true);
-    final res = await getDueCardsUseCase(deckId);
+    final res = await getDueCardsUseCase(
+      deckId,
+      ignoreDailyNewLimit: ignoreDailyNewLimit,
+    );
     res.fold(
       (failure) => state = state.copyWith(
         isLoading: false,
@@ -116,6 +119,9 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
       },
     );
   }
+
+  /// Loads extra unstudied new cards even when today's daily new-card quota was reached.
+  Future<void> loadExtraNewCards() => loadQueue(ignoreDailyNewLimit: true);
 
   /// Merges newly created or newly due cards from SQLite into the active study
   /// session queue without losing the user's current card or progress.

@@ -13,6 +13,7 @@ abstract class DeckRepository {
   Future<Either<Failure, List<VocabCard>>> getDueCards(
     String deckId, {
     StudySettings? settings,
+    bool ignoreDailyNewLimit = false,
   });
   Future<Either<Failure, FsrsScheduleOutput>> submitReview({
     required VocabCard card,

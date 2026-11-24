@@ -12,10 +12,33 @@ import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../stats/presentation/providers/stats_provider.dart';
 import '../providers/study_session_provider.dart';
 
-class StudySessionPage extends ConsumerWidget {
+class StudySessionPage extends ConsumerStatefulWidget {
   final String deckId;
+  final bool extraNew;
 
-  const StudySessionPage({super.key, required this.deckId});
+  const StudySessionPage({
+    super.key,
+    required this.deckId,
+    this.extraNew = false,
+  });
+
+  @override
+  ConsumerState<StudySessionPage> createState() => _StudySessionPageState();
+}
+
+class _StudySessionPageState extends ConsumerState<StudySessionPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.extraNew) {
+      Future.microtask(() {
+        if (!mounted) return;
+        ref
+            .read(studySessionProvider(widget.deckId).notifier)
+            .loadExtraNewCards();
+      });
+    }
+  }
 
   String _formatIntervalPreview(FsrsScheduleOutput out) {
     final mins = out.nextReviewAt.difference(DateTime.now()).inMinutes;
@@ -33,7 +56,8 @@ class StudySessionPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
+    final deckId = widget.deckId;
     final px = PixelColors.of(context);
     final colorScheme = Theme.of(context).colorScheme;
     final session = ref.watch(studySessionProvider(deckId));
@@ -86,37 +110,64 @@ class StudySessionPage extends ConsumerWidget {
     }
 
     if (session.isCompleted || session.currentCard == null) {
+      final decks = ref.watch(deckListProvider).valueOrNull ?? const [];
+      final matchingDeck = decks.where((d) => d.id == deckId).firstOrNull;
+      final remainingNewInDeck = matchingDeck?.totalNewCards ?? 0;
+
       return Scaffold(
+        backgroundColor: px.canvas,
         appBar: AppBar(title: const Text('HOÀN THÀNH QUEST!')),
-        body: Center(
-          child: PixelCard(
-            margin: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.emoji_events_rounded, size: 64, color: px.gold),
-                const SizedBox(height: 14),
-                Text(
-                  'STAGE CLEAR!',
-                  style: Theme.of(context).textTheme.headlineMedium,
+        body: WoodPlankBackground(
+          child: Center(
+            child: PixelCard(
+              woodFrame: true,
+              showRivets: true,
+              backgroundColor: px.cardParchment,
+              margin: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.emoji_events_rounded, size: 64, color: px.primary),
+                    const SizedBox(height: 14),
+                    Text(
+                      'STAGE CLEAR!',
+                      style: Theme.of(context).textTheme.headlineMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      remainingNewInDeck > 0
+                          ? 'Bạn đã hoàn thành hạn mức thẻ mới hôm nay (${session.reviewedCount} lượt ôn). Bộ thẻ vẫn còn $remainingNewInDeck thẻ mới chưa học!'
+                          : 'Bạn đã hoàn thành toàn bộ thẻ đến hạn hôm nay (${session.reviewedCount} lượt ôn).',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: px.inkMuted),
+                    ),
+                    const SizedBox(height: 18),
+                    if (remainingNewInDeck > 0) ...[
+                      PixelButton(
+                        expand: true,
+                        label: 'HỌC THÊM THẺ MỚI ($remainingNewInDeck THẺ)',
+                        icon: Icons.bolt_rounded,
+                        backgroundColor: px.primary,
+                        foregroundColor: px.ink,
+                        onPressed: notifier.loadExtraNewCards,
+                      ),
+                      const SizedBox(height: 10),
+                    ],
+                    PixelButton(
+                      expand: true,
+                      label: 'QUAY LẠI BỘ THẺ',
+                      icon: Icons.arrow_back,
+                      backgroundColor: px.emerald,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Bạn đã hoàn thành toàn bộ thẻ đến hạn hôm nay (${session.reviewedCount} lượt ôn).',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: px.inkMuted),
-                ),
-                const SizedBox(height: 18),
-                PixelButton(
-                  label: 'QUAY LẠI BỘ THẺ',
-                  icon: Icons.arrow_back,
-                  backgroundColor: px.emerald,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+              ),
             ),
           ),
         ),

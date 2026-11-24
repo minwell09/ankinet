@@ -99,6 +99,7 @@ class DeckRepositoryImpl implements DeckRepository {
             totalCards: total,
             dueCards: totalDue,
             newCards: allowedNew,
+            totalNewCards: rawNew,
             learningCards: learningDue,
             reviewDueCards: allowedReview,
             leechCards: leeches,
@@ -116,6 +117,7 @@ class DeckRepositoryImpl implements DeckRepository {
   Future<Either<Failure, List<VocabCard>>> getDueCards(
     String deckId, {
     StudySettings? settings,
+    bool ignoreDailyNewLimit = false,
   }) async {
     try {
       final db = await localDatabase.database;
@@ -145,17 +147,22 @@ class DeckRepositoryImpl implements DeckRepository {
         limit: cfg.maxReviewsPerDay,
       );
 
-      // 3. New cards (capped by remaining daily new-card quota)
-      final introRes = await db.rawQuery(
-        '''
-        SELECT COUNT(DISTINCT card_id) AS cnt
-        FROM revlog
-        WHERE deck_id = ? AND reviewed_at >= ? AND state_before = 0
-        ''',
-        [deckId, todayStart],
-      );
-      final introducedToday = (introRes.first['cnt'] as int?) ?? 0;
-      final remainingNew = math.max(0, cfg.newCardsPerDay - introducedToday);
+      // 3. New cards (capped by remaining daily new-card quota unless user opts to study extra)
+      final int remainingNew;
+      if (ignoreDailyNewLimit) {
+        remainingNew = math.max(cfg.newCardsPerDay, 20);
+      } else {
+        final introRes = await db.rawQuery(
+          '''
+          SELECT COUNT(DISTINCT card_id) AS cnt
+          FROM revlog
+          WHERE deck_id = ? AND reviewed_at >= ? AND state_before = 0
+          ''',
+          [deckId, todayStart],
+        );
+        final introducedToday = (introRes.first['cnt'] as int?) ?? 0;
+        remainingNew = math.max(0, cfg.newCardsPerDay - introducedToday);
+      }
 
       final List<Map<String, Object?>> newRows = remainingNew > 0
           ? await db.query(

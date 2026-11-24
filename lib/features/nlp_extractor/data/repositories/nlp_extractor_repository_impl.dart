@@ -161,7 +161,7 @@ class NlpExtractorRepositoryImpl implements NlpExtractorRepository {
               'ease_factor': 2.5,
               'is_leech': 0,
               'is_suspended': 0,
-              'next_review_at': now,
+              'next_review_at': now - 1000,
               'created_at': now,
             },
             conflictAlgorithm: ConflictAlgorithm.ignore,

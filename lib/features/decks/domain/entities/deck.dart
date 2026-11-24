@@ -7,6 +7,7 @@ class Deck extends Equatable {
   final int totalCards;
   final int dueCards;
   final int newCards;
+  final int totalNewCards;
   final int learningCards;
   final int reviewDueCards;
   final int leechCards;
@@ -18,6 +19,7 @@ class Deck extends Equatable {
     required this.totalCards,
     required this.dueCards,
     this.newCards = 0,
+    this.totalNewCards = 0,
     this.learningCards = 0,
     this.reviewDueCards = 0,
     this.leechCards = 0,
@@ -31,6 +33,7 @@ class Deck extends Equatable {
         totalCards,
         dueCards,
         newCards,
+        totalNewCards,
         learningCards,
         reviewDueCards,
         leechCards,

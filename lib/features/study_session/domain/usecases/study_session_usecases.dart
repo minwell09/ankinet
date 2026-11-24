@@ -16,8 +16,13 @@ class GetDueCardsUseCase {
   Future<Either<Failure, List<VocabCard>>> call(
     String deckId, {
     StudySettings? settings,
+    bool ignoreDailyNewLimit = false,
   }) {
-    return repository.getDueCards(deckId, settings: settings);
+    return repository.getDueCards(
+      deckId,
+      settings: settings,
+      ignoreDailyNewLimit: ignoreDailyNewLimit,
+    );
   }
 }
 

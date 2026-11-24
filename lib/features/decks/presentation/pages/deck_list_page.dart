@@ -498,11 +498,26 @@ class _DeckListPageState extends ConsumerState<DeckListPage> {
                           ),
                           const SizedBox(width: 10),
                           PixelButton(
-                            label: 'ÔN TẬP (${deck.dueCards})',
+                            label: deck.dueCards > 0
+                                ? 'ÔN TẬP (${deck.dueCards})'
+                                : (deck.totalNewCards > 0
+                                    ? 'HỌC THÊM (${deck.totalNewCards})'
+                                    : 'ÔN TẬP (0)'),
                             icon: Icons.play_arrow_rounded,
-                            backgroundColor: px.emerald,
-                            onPressed: () =>
-                                context.go('/decks/study/${deck.id}'),
+                            backgroundColor: deck.dueCards > 0
+                                ? px.emerald
+                                : (deck.totalNewCards > 0
+                                    ? px.primary
+                                    : px.emerald),
+                            foregroundColor: deck.dueCards == 0 &&
+                                    deck.totalNewCards > 0
+                                ? px.ink
+                                : Colors.white,
+                            onPressed: () => context.go(
+                              deck.dueCards == 0 && deck.totalNewCards > 0
+                                  ? '/decks/study/${deck.id}?extraNew=1'
+                                  : '/decks/study/${deck.id}',
+                            ),
                           ),
                         ],
                       ),
@@ -521,7 +536,9 @@ class _DeckListPageState extends ConsumerState<DeckListPage> {
                             backgroundColor: px.surfaceAlt,
                           ),
                           PixelBadge(
-                            label: 'MỚI: ${deck.newCards}',
+                            label: deck.totalNewCards > deck.newCards
+                                ? 'MỚI: ${deck.newCards}/${deck.totalNewCards}'
+                                : 'MỚI: ${deck.totalNewCards}',
                             backgroundColor: colorScheme.primaryContainer,
                           ),
                           PixelBadge(

@@ -39,34 +39,38 @@ flowchart TD
 
 ## 3. Step-by-Step Walkthrough
 
-### Tier 1 — Background Isolate Tokenization, Lemmatization & Morphology
+### Tier 1 — Background Isolate Tokenization, Phrasal Verbs, Context POS & Morphology
 Executed via Flutter's `compute(_tokenizeAndDecomposeInIsolate, payload)` using the lightweight `assets/nlp/nlp_bundle.json` bundle (~208 KB):
 
 1. **Sentence Splitting:**
    Splits input text on sentence boundaries (`(?<=[.!?。\n])\s+`) so every extracted token retains its exact source sentence for contextual learning.
-2. **Tokenization & Filtering:**
-   - **EN-VI mode:** Matches alphabetic tokens `[A-Za-z]{3,}`, lowercases them, filters common English stop words (`the`, `and`, `for`, `would`, etc.), deduplicates by surface word, and caps at **40 tokens per pass**.
+2. **Pass 1 — Multi-Word Expressions (Phrasal Verbs) Sliding Window:**
+   Before single-word tokenization, a 3-word and 2-word sliding window (including lemmatized head verbs like `gave up -> give up`, `looking forward to -> look forward to`) matches against the 8,600+ multi-word entries in `offline_dict.db`. Matched phrasal verbs (`look forward to`, `give up`, `take off`) are emitted as single cohesive flashcard tokens with phrase-level Cloze masking, and their constituent word indices are marked consumed.
+3. **Pass 2 — Single-Word Tokenization & Context-Window POS Heuristic:**
+   - **EN-VI mode:** Matches alphabetic tokens `[A-Za-z]{3,}`, filters stop words, deduplicates, and caps at **40 tokens per pass**.
+   - **Context-Window POS (`_predictContextPos`):** Inspects `(prev2, prev1, next1)` in the sentence (`to` / modals / `began to` → `verb`; determiners `a/an/the` → `noun` or `adj` before content noun; degree adverbs → `adj`; `-ly` → `adv`).
    - **CJK mode:** Matches Hanzi/Kanji chunks `[\u4e00-\u9fff]{1,4}` (capped at 30) and decomposes characters into radicals/pinyin hints.
-3. **Lemmatization (`_lemmatizeWord`):**
+4. **Lemmatization (`_lemmatizeWord`):**
    - Checks the **5,500+ WordNet irregular lemma map** first (e.g., `ran -> run`, `phenomena -> phenomenon`, `better -> good`).
    - Falls back to rule-based inflection stripping (`-ies -> -y`, `-ied -> -y`, `-ves -> -f/-fe`, `-ing`, `-ed`, `-es`, `-s`), validating candidates against the offline dictionary.
-4. **Morphological Root Decomposition (`_decomposeMorphology`):**
-   Decomposes each word into **Greek/Latin prefixes, roots, and suffixes** (e.g., `inspect -> in- + -spect-`, `transport -> trans- + -port-`, `portable -> -port- + -able`).
-5. **Part of Speech (POS) & Fallback Synthesis:**
-   Infers POS (`noun`, `verb`, `adj`, `adv`, `vocab`) from suffixes when missing, generates a fallback rule-based G2P IPA (`_fallbackG2pIpa`), and synthesizes a morpheme-based hint if no dictionary entry is found yet.
-6. **Surface-Form Cloze Masking (`ClozeMasker.maskSentence`):**
-   Masks the exact **surface form** (and any inflected/irregular variant of the lemma) in the source sentence with `[...]` — for example, even if the lemma is `run`, the sentence *"She was running fast"* becomes *"She was [...] fast"*.
+5. **Validated Morphology & Compound Word Splitting (`_decomposeMorphology`):**
+   - **Compound Words First:** Splits common English compounds & irregular plurals (`fishermen` / `fisherman` → `fish` + `man`) before affix/root extraction so compound boundaries are never sliced across.
+   - **Stem-Validated Prefixes & Suffixes:** Prefixes (`startsWith`) and suffixes (`endsWith`) are only accepted when the remaining stem is a valid word/root (`wooden` → `wood + -en` valid; `green`, `dozen`, `fishermen` rejected).
+   - **Boundary-Aligned Greco-Latin Roots:** No naive `word.contains(root)` matching; roots must align to the stripped `coreStem` boundary, preventing false positives like `fis[her]men` or `anot[her]`.
+6. **Broad Learner IPA Normalization (`IpaNormalizer`):**
+   Normalizes narrow IPA allophones (`ɫ -> l`, `ɹ -> r`) and strips redundant primary stress `ˈ` on single-syllable words (e.g., `/ˈɫɪft/` and `/lˈɪft/` → `/lɪft/`).
+7. **Surface-Form Cloze Masking (`ClozeMasker.maskSentence`):**
+   Masks the exact **surface form** (or multi-word phrasal verb) in the source sentence with `[...]`.
 
 ---
 
 ### Tier 2 — Dedicated Offline SQLite Dictionary (`assets/nlp/offline_dict.db`)
 Managed by `OfflineDictionaryDatabase`:
 
-- **Asset Size & Content:** ~18.7 MB pre-built SQLite database (`tool/build_offline_dict_sqlite.py`) containing **205,000+ English headwords**, **104,700+ EN-VI definitions** (CC BY-SA 4.0), **US (`ipa_us`) & UK (`ipa_uk`) IPA** from Open Dict Data, and irregular lemmas.
-- **Lazy Initialization & Indexed Lookup:**
-  Materialized once on first access via `databaseFactory.writeDatabaseBytes(...)` and opened read-only. Instead of loading 200k entries into RAM, it runs chunked primary-key queries (`WHERE word IN (?, ?, ...)` in chunks of 200) for both `surfaceWord` and `lemma`.
-- **Reliability Safeguards (Web & Mobile):**
-  Uses a shared `_openingFuture` concurrency guard plus explicit timeouts (`12s` on Web, `8s` on native for initial copy; `4s` per query) so if IndexedDB/WASM initialization ever stalls, the pipeline degrades gracefully to Tier 1 + Tier 3/4 instead of hanging.
+- **Asset Size & Content:** ~18.7 MB pre-built SQLite database (`tool/build_offline_dict_sqlite.py`) containing **205,000+ English headwords** (including **8,633 multi-word/phrasal verb entries**), **104,700+ EN-VI definitions** (CC BY-SA 4.0), normalized **US (`ipa_us`) & UK (`ipa_uk`) IPA** from Open Dict Data, and irregular lemmas.
+- **Read-Only Performance Pragmas (Native):** Applies `PRAGMA query_only = ON`, `PRAGMA mmap_size = 33554432` (32 MB mmap), and `PRAGMA cache_size = -8000` (8 MB page cache) on Android/native platforms.
+- **POS-Prioritized Indexed Lookup:** Runs chunked primary-key queries (`WHERE word IN (...)` in chunks of 200) and prioritizes dictionary entries matching the Tier 1 predicted context POS.
+- **Reliability Safeguards (Web & Mobile):** Uses a shared `_openingFuture` concurrency guard plus explicit timeouts (`12s` Web / `8s` native) so initialization never hangs.
 
 ---
 
@@ -78,23 +82,23 @@ Before making any network request, `HybridNlpAnalyzerDataSourceImpl` queries the
 
 ---
 
-### Tier 4 — Context-Aware Online / LLM Enrichment
-Triggered only when `enableOnlineLookup` is enabled in Settings, and only for tokens that are not in the offline bundle (or when a **Gemini API key** is configured for contextual disambiguation), capped at **8 words per analysis**:
+### Tier 4 — Single-Batch Gemini LLM / Online Enrichment
+Triggered only when `enableOnlineLookup` is enabled in Settings:
 
-1. **Pronunciation & Audio:** Queries `api.dictionaryapi.dev` for US/UK IPA and audio URLs.
-2. **Contextual Meaning:**
-   - **If Gemini API Key is set:** Sends the word, lemma, full sentence, and offline glossary/morpheme hint to `gemini-2.0-flash` requesting strict JSON `{"pos": "...", "meaning": "..."}`.
-   - **Fallback / Default:** Calls Google Translate GTX (`translate.googleapis.com`) for Vietnamese translation, POS, and synonyms.
-3. **Timeouts & Caching:**
-   Each word lookup has a `4s` timeout and the entire parallel `Future.wait` batch has a `6s` ceiling. Successful results are persisted to `dict_cache` via a batch insert (`ConflictAlgorithm.replace`) so future analyses of the same sentence are instant and offline.
+1. **Single-Batch Gemini JSON Array (Primary when API Key is set):**
+   Combines up to **18** uncached/ambiguous tokens with their source sentences and predicted POS into **one single `POST` request** to `gemini-2.0-flash` requesting a structured JSON array:
+   `[{"word": "...", "lemma": "...", "pos": "...", "meaning": "...", "root": "..."}]`.
+   This dramatically reduces token usage and prevents HTTP `429` rate-limit errors. All returned items are persisted to `dict_cache` in a single `db.batch()` transaction.
+2. **Fallback (No Gemini Key):**
+   Queries `api.dictionaryapi.dev` + Google Translate GTX for up to 8 uncached words with strict per-word (`4s`) and overall (`6s`) timeouts.
 
 ---
 
-## 4. Duplicate Detection & Batch Card Creation
+## 4. Deck-Scoped Duplicate Detection & Batch Card Creation
 
-1. **Already-Saved Detection (`NlpExtractorRepositoryImpl.analyzeText`):**
-   Queries `SELECT word FROM cards WHERE word IN (...)` and flags existing cards (`isAlreadySaved = true`). New words are auto-selected; already-saved words are unchecked by default.
+1. **Deck-Scoped Duplicate Detection (`NlpExtractorRepositoryImpl.analyzeText`):**
+   Queries `SELECT word FROM cards WHERE deck_id = ? AND word IN (...)` scoped to the currently selected target deck so users can see whether a word is already in that specific deck.
 2. **Atomic Batch Transaction (`createCardsAndGraphNodes`):**
    - Verifies that the target `deck_id` exists in `decks` (falling back to the first available deck or auto-creating `default_deck` to prevent SQLite Foreign Key `code 787` errors).
-   - Inserts all selected cards into `cards` using `ConflictAlgorithm.ignore` (preserving existing FSRS review history if a word already exists).
-   - Inserts morphemes into `radicals` and links them in `card_radical_edges` so the Study Session can suggest related words sharing the same root.
+   - Inserts all selected cards with `state = 0`, `is_suspended = 0`, and `next_review_at = now - 1000` using `ConflictAlgorithm.ignore` (preserving existing FSRS review history).
+   - Links morphemes in `radicals` / `card_radical_edges`, while `DeckRepositoryImpl.getRelatedWordsByRadicals` filters strictly to meaningful ≥ 4-char Greco-Latin roots and compound stems.

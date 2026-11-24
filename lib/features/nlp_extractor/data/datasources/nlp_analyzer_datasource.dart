@@ -9,6 +9,7 @@ import 'package:sqflite/sqflite.dart';
 import '../../../../core/database/local_database.dart';
 import '../../../../core/database/offline_dictionary_database.dart';
 import '../../../../core/utils/cloze_masker.dart';
+import '../../../../core/utils/ipa_normalizer.dart';
 import '../models/extracted_token_model.dart';
 
 enum LearningLanguageMode {
@@ -28,12 +29,88 @@ class _IsolateAnalyzePayload {
   final String rawText;
   final String modeName;
   final Map<String, dynamic> bundle;
+  final Map<String, Map<String, String>> mweDict;
 
   const _IsolateAnalyzePayload({
     required this.rawText,
     required this.modeName,
     required this.bundle,
+    this.mweDict = const {},
   });
+}
+
+const Set<String> _verbTriggerPrevs = {
+  'to', 'can', 'could', 'will', 'would', 'shall', 'should', 'may', 'might',
+  'must', 'do', 'does', 'did', 'don', 'doesn', 'didn', 'won', 'wouldn',
+  'couldn', 'shouldn', 'cannot', 'let', 'lets', 'please',
+};
+
+const Set<String> _determiners = {
+  'a', 'an', 'the', 'this', 'that', 'these', 'those', 'my', 'your', 'his',
+  'her', 'its', 'our', 'their', 'some', 'any', 'many', 'few', 'several',
+  'each', 'every', 'no', 'one', 'two', 'three', 'another',
+};
+
+const Set<String> _degreeAdverbs = {
+  'very', 'quite', 'rather', 'extremely', 'fairly', 'too', 'so', 'really',
+  'highly', 'deeply', 'truly', 'incredibly',
+};
+
+const Set<String> _prepositionsAndConj = {
+  'in', 'on', 'at', 'by', 'for', 'with', 'about', 'against', 'between',
+  'into', 'through', 'during', 'before', 'after', 'above', 'below', 'from',
+  'up', 'down', 'of', 'off', 'over', 'under', 'to', 'as', 'and', 'or', 'but',
+  'while', 'when', 'where', 'that', 'which', 'who', 'than', 'because', 'if',
+};
+
+/// Context-window POS heuristic inspecting (prev2, prev1, next1) within the sentence.
+/// Returns a high-confidence grammatical POS ('verb', 'noun', 'adj', 'adv') or null.
+String? _predictContextPos({
+  required String surface,
+  String? prev2,
+  String? prev1,
+  String? next1,
+}) {
+  if (prev1 != null) {
+    // Infinitive "to + verb" (e.g., "began to lift", "want to run") & modals ("would lift")
+    if (_verbTriggerPrevs.contains(prev1)) {
+      if (prev1 == 'to') {
+        // Distinguish "to + verb" from "to + det/noun" (if next1 is determiner/preposition/end, likely verb)
+        if (prev2 == null || !_determiners.contains(prev2)) {
+          return 'verb';
+        }
+      } else {
+        return 'verb';
+      }
+    }
+    if (_degreeAdverbs.contains(prev1)) {
+      return surface.endsWith('ly') ? 'adv' : 'adj';
+    }
+    if (_determiners.contains(prev1)) {
+      // "a weathered ferry": if followed by another content word (not prep/conj/stop), likely adj; else noun
+      if (next1 != null &&
+          next1.length >= 3 &&
+          !_prepositionsAndConj.contains(next1) &&
+          !_stopWords.contains(next1) &&
+          !_verbTriggerPrevs.contains(next1)) {
+        if (surface.endsWith('ed') ||
+            surface.endsWith('ing') ||
+            surface.endsWith('al') ||
+            surface.endsWith('ous') ||
+            surface.endsWith('ive') ||
+            surface.endsWith('en') ||
+            surface.endsWith('ic') ||
+            surface.endsWith('ful')) {
+          return 'adj';
+        }
+      }
+      return 'noun';
+    }
+  }
+  if (surface.endsWith('ly') && surface.length > 4) {
+    return 'adv';
+  }
+  return null;
 }
 
 /// Top-level function executed inside a background isolate via [compute]
@@ -58,6 +135,7 @@ List<Map<String, dynamic>> _tokenizeAndDecomposeInIsolate(
       (payload.bundle['roots'] as Map<String, dynamic>?) ?? _defaultRoots;
   final suffixes =
       (payload.bundle['suffixes'] as Map<String, dynamic>?) ?? _defaultSuffixes;
+  final mweDict = payload.mweDict;
 
   ClozeMasker.registerIrregularSurfaceToLemmaMap(irregulars);
 
@@ -73,11 +151,104 @@ List<Map<String, dynamic>> _tokenizeAndDecomposeInIsolate(
   final results = <Map<String, dynamic>>[];
 
   for (final sentence in effectiveSentences) {
-    final matches = RegExp(r"[A-Za-z]{3,}").allMatches(sentence);
-    for (final m in matches) {
-      final surface = m.group(0)!.toLowerCase();
+    final wordMatches = RegExp(r"[A-Za-z]+").allMatches(sentence).toList();
+    final sentenceWords =
+        wordMatches.map((m) => m.group(0)!.toLowerCase()).toList();
+    final consumedIndices = <int>{};
+
+    // Pass 1: 3-word and 2-word sliding window for Phrasal Verbs / Multi-Word Expressions
+    if (mweDict.isNotEmpty && sentenceWords.length >= 2) {
+      for (var i = 0; i < sentenceWords.length; i++) {
+        if (consumedIndices.contains(i)) continue;
+
+        bool matchedPhrase = false;
+        for (final span in const [3, 2]) {
+          if (i + span > sentenceWords.length) continue;
+          if (List.generate(span, (k) => i + k)
+              .any(consumedIndices.contains)) {
+            continue;
+          }
+
+          final surfaceWords = sentenceWords.sublist(i, i + span);
+          final surfacePhrase = surfaceWords.join(' ');
+          final headLemma = _lemmatizeWord(
+            surfaceWords.first,
+            irregulars: irregulars,
+            offlineDict: offlineDict,
+          );
+          final lemmaPhrase =
+              [headLemma, ...surfaceWords.skip(1)].join(' ');
+
+          final hit = mweDict[surfacePhrase] ?? mweDict[lemmaPhrase];
+          if (hit != null && (hit['vi'] ?? '').isNotEmpty) {
+            final canonicalPhrase =
+                mweDict.containsKey(surfacePhrase) ? surfacePhrase : lemmaPhrase;
+            for (var k = 0; k < span; k++) {
+              consumedIndices.add(i + k);
+            }
+            matchedPhrase = true;
+            if (seen.add(canonicalPhrase)) {
+              final rawSpan = sentence.substring(
+                wordMatches[i].start,
+                wordMatches[i + span - 1].end,
+              );
+              final clozeSentence = sentence.replaceFirst(
+                RegExp(RegExp.escape(rawSpan), caseSensitive: false),
+                ClozeMasker.placeholder,
+              );
+              final ipaUs = IpaNormalizer.normalize(hit['ipa_us'] ?? '');
+              final ipaUk = IpaNormalizer.normalize(hit['ipa_uk'] ?? '');
+              final ipa = IpaNormalizer.normalize(hit['ipa'] ?? '');
+              results.add({
+                'surface_word': canonicalPhrase,
+                'lemma': canonicalPhrase,
+                'phonetic': ipa.isNotEmpty
+                    ? ipa
+                    : (ipaUs.isNotEmpty ? ipaUs : ipaUk),
+                'phonetic_us': ipaUs,
+                'phonetic_uk': ipaUk,
+                'translation': hit['vi'] ?? '',
+                'pos': hit['pos'] ?? 'phrase',
+                'context_pos': hit['pos'] ?? 'phrase',
+                'source_sentence': sentence,
+                'cloze_sentence': clozeSentence,
+                'audio_url': '',
+                'radicals': [
+                  {
+                    'symbol': headLemma,
+                    'meaning': 'cụm động từ / thành ngữ ($canonicalPhrase)',
+                    'stroke_count': 0,
+                  }
+                ],
+                'is_from_offline_bundle': true,
+              });
+            }
+            break;
+          }
+        }
+        if (matchedPhrase && results.length >= 40) break;
+      }
+    }
+
+    if (results.length >= 40) break;
+
+    // Pass 2: Single-word tokenization with (prev2, prev1, next1) context-window POS heuristic
+    for (var i = 0; i < sentenceWords.length; i++) {
+      if (consumedIndices.contains(i)) continue;
+      final surface = sentenceWords[i];
+      if (surface.length < 3) continue;
       if (_stopWords.contains(surface)) continue;
       if (!seen.add(surface)) continue;
+
+      final prev2 = i >= 2 ? sentenceWords[i - 2] : null;
+      final prev1 = i >= 1 ? sentenceWords[i - 1] : null;
+      final next1 = i + 1 < sentenceWords.length ? sentenceWords[i + 1] : null;
+      final predictedPos = _predictContextPos(
+        surface: surface,
+        prev2: prev2,
+        prev1: prev1,
+        next1: next1,
+      );
 
       final lemma = _lemmatizeWord(
         surface,
@@ -98,14 +269,18 @@ List<Map<String, dynamic>> _tokenizeAndDecomposeInIsolate(
           (offlineDict[surface] ?? offlineDict[lemma]) as Map<String, dynamic>?;
       final bool inCoreBundle = dictEntry != null;
 
-      final String ipaUs = (dictEntry?['ipa_us'] as String?) ?? '';
-      final String ipaUk = (dictEntry?['ipa_uk'] as String?) ?? '';
-      final String ipa = (dictEntry?['ipa'] as String?) ??
-          (ipaUs.isNotEmpty
-              ? ipaUs
-              : (ipaUk.isNotEmpty ? ipaUk : _fallbackG2pIpa(surface)));
+      final String ipaUs =
+          IpaNormalizer.normalize((dictEntry?['ipa_us'] as String?) ?? '');
+      final String ipaUk =
+          IpaNormalizer.normalize((dictEntry?['ipa_uk'] as String?) ?? '');
+      final String ipa = IpaNormalizer.normalize(
+        (dictEntry?['ipa'] as String?) ??
+            (ipaUs.isNotEmpty
+                ? ipaUs
+                : (ipaUk.isNotEmpty ? ipaUk : _fallbackG2pIpa(surface))),
+      );
       final String pos =
-          (dictEntry?['pos'] as String?) ?? _inferPos(surface);
+          predictedPos ?? (dictEntry?['pos'] as String?) ?? _inferPos(surface);
       final String viMeaning = (dictEntry?['vi'] as String?) ??
           _synthesizeVietnamese(surface, pos, radicals);
 
@@ -124,6 +299,7 @@ List<Map<String, dynamic>> _tokenizeAndDecomposeInIsolate(
         'phonetic_uk': ipaUk,
         'translation': viMeaning,
         'pos': pos,
+        'context_pos': predictedPos ?? '',
         'source_sentence': sentence,
         'cloze_sentence': clozeSentence,
         'audio_url': '',
@@ -681,6 +857,54 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
     return _cachedBundle!;
   }
 
+  /// Collects 2-word and 3-word n-gram candidates (including lemmatized head verbs)
+  /// to detect Phrasal Verbs / Multi-Word Expressions in `offline_dict.db` in 1 batch query.
+  Set<String> _collectMultiWordCandidates(
+    String rawText,
+    Map<String, dynamic> bundle,
+  ) {
+    final irregulars =
+        (bundle['irregular_lemmas'] as Map<String, dynamic>?) ?? const {};
+    final offlineDict =
+        (bundle['offline_dict'] as Map<String, dynamic>?) ?? const {};
+    final candidates = <String>{};
+    final sentences = rawText
+        .split(RegExp(r'(?<=[.!?。\n])\s+'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty);
+
+    for (final sentence in sentences) {
+      final words = RegExp(r"[A-Za-z]+")
+          .allMatches(sentence)
+          .map((m) => m.group(0)!.toLowerCase())
+          .toList();
+      if (words.length < 2) continue;
+
+      for (var i = 0; i < words.length; i++) {
+        final head = words[i];
+        if (head.length < 2) continue;
+        final headLemma = _lemmatizeWord(
+          head,
+          irregulars: irregulars,
+          offlineDict: offlineDict,
+        );
+        for (final span in const [2, 3]) {
+          if (i + span > words.length) continue;
+          final sub = words.sublist(i, i + span);
+          // Only consider candidates containing a particle/preposition or verb-like phrase
+          final hasParticle = sub.skip(1).any(_prepositionsAndConj.contains);
+          if (!hasParticle) continue;
+          candidates.add(sub.join(' '));
+          if (headLemma != head) {
+            candidates.add([headLemma, ...sub.skip(1)].join(' '));
+          }
+          if (candidates.length >= 160) return candidates;
+        }
+      }
+    }
+    return candidates;
+  }
+
   @override
   Future<List<ExtractedTokenModel>> tokenizeAndAnalyze(
     String rawText, {
@@ -689,21 +913,49 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
   }) async {
     final bundle = await _loadBundle();
 
-    // 1. Run CPU-intensive tokenization + lemmatization + morphology in background isolate
+    // 0. Pre-query offline_dict.db for 2–3 word Phrasal Verbs / Multi-Word Expressions
+    final mweDict = <String, Map<String, String>>{};
+    if (mode == LearningLanguageMode.englishForVietnamese) {
+      final mweCandidates = _collectMultiWordCandidates(rawText, bundle);
+      if (mweCandidates.isNotEmpty) {
+        final mweHits = await _offlineDictDb.lookupBatch(mweCandidates);
+        mweHits.forEach((phrase, entry) {
+          if (entry.vi.isNotEmpty) {
+            mweDict[phrase] = {
+              'ipa': entry.ipa,
+              'ipa_us': entry.ipaUs,
+              'ipa_uk': entry.ipaUk,
+              'pos': entry.pos,
+              'vi': entry.vi,
+            };
+          }
+        });
+      }
+    }
+
+    // 1. Run CPU-intensive tokenization + MWE sliding window + context POS + morphology in isolate
     final rawMaps = await compute(
       _tokenizeAndDecomposeInIsolate,
       _IsolateAnalyzePayload(
         rawText: rawText,
         modeName: mode.name,
         bundle: bundle,
+        mweDict: mweDict,
       ),
     );
 
     if (rawMaps.isEmpty) return const [];
 
+    final predictedPosByWord = <String, String>{
+      for (final m in rawMaps)
+        (m['surface_word'] as String? ?? ''):
+            (m['context_pos'] as String? ?? ''),
+    };
+
     var tokens = rawMaps.map(ExtractedTokenModel.fromJson).toList();
 
-    // 2. Enrich tokens from the dedicated 185,189-word SQLite Offline Dictionary (`assets/nlp/offline_dict.db`)
+    // 2. Enrich tokens from the dedicated 205k-word SQLite Offline Dictionary (`assets/nlp/offline_dict.db`)
+    //    prioritizing predicted context POS when matching surface vs lemma entries.
     if (mode == LearningLanguageMode.englishForVietnamese) {
       final lookupCandidates = <String>{
         for (final t in tokens) t.surfaceWord,
@@ -717,11 +969,27 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
           final surfaceHit = sqlEntries[t.surfaceWord];
           final lemmaHit =
               t.lemma.isNotEmpty ? sqlEntries[t.lemma] : null;
-          final bestVi = (surfaceHit != null && surfaceHit.vi.isNotEmpty)
+          final ctxPos = predictedPosByWord[t.surfaceWord] ?? '';
+
+          // Prefer whichever entry matches the predicted grammatical context POS
+          OfflineDictEntry? bestVi;
+          if (ctxPos.isNotEmpty) {
+            if (lemmaHit != null &&
+                lemmaHit.vi.isNotEmpty &&
+                lemmaHit.pos == ctxPos) {
+              bestVi = lemmaHit;
+            } else if (surfaceHit != null &&
+                surfaceHit.vi.isNotEmpty &&
+                surfaceHit.pos == ctxPos) {
+              bestVi = surfaceHit;
+            }
+          }
+          bestVi ??= (surfaceHit != null && surfaceHit.vi.isNotEmpty)
               ? surfaceHit
               : ((lemmaHit != null && lemmaHit.vi.isNotEmpty)
                   ? lemmaHit
                   : null);
+
           final bestIpaUs = (surfaceHit != null && surfaceHit.ipaUs.isNotEmpty)
               ? surfaceHit.ipaUs
               : ((lemmaHit != null && lemmaHit.ipaUs.isNotEmpty)
@@ -740,12 +1008,18 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
                       ? bestIpaUs
                       : (bestIpaUk.isNotEmpty ? bestIpaUk : t.phonetic)));
 
-          // Correct lemma if the surface word itself is a base entry in the 104k EN-VI dictionary
           final effectiveLemma = (lemmaHit != null && lemmaHit.vi.isNotEmpty)
               ? t.lemma
               : ((surfaceHit != null && surfaceHit.vi.isNotEmpty)
                   ? t.surfaceWord
                   : t.lemma);
+
+          // Keep high-confidence context POS (e.g. "began to lift" -> verb) over generic noun fallback
+          final effectivePos = ctxPos.isNotEmpty
+              ? ctxPos
+              : (bestVi != null && bestVi.pos != 'vocab'
+                  ? bestVi.pos
+                  : t.partOfSpeech);
 
           if (bestVi != null) {
             return ExtractedTokenModel(
@@ -755,14 +1029,15 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
               phoneticUs: bestIpaUs,
               phoneticUk: bestIpaUk,
               translation: bestVi.vi,
-              partOfSpeech:
-                  bestVi.pos != 'vocab' ? bestVi.pos : t.partOfSpeech,
+              partOfSpeech: effectivePos,
               sourceSentence: t.sourceSentence,
-              clozeSentence: ClozeMasker.maskSentence(
-                sentence: t.sourceSentence,
-                word: t.surfaceWord,
-                lemma: effectiveLemma,
-              ),
+              clozeSentence: t.surfaceWord.contains(' ')
+                  ? t.clozeSentence
+                  : ClozeMasker.maskSentence(
+                      sentence: t.sourceSentence,
+                      word: t.surfaceWord,
+                      lemma: effectiveLemma,
+                    ),
               audioUrl: t.audioUrl,
               radicals: t.radicals,
               isFromOfflineBundle: true,
@@ -777,7 +1052,7 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
               phoneticUs: bestIpaUs,
               phoneticUk: bestIpaUk,
               translation: t.translation,
-              partOfSpeech: t.partOfSpeech,
+              partOfSpeech: effectivePos,
               sourceSentence: t.sourceSentence,
               clozeSentence: t.clozeSentence,
               audioUrl: t.audioUrl,
@@ -863,69 +1138,79 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
         );
       } else {
         enriched.add(t);
+        final maxOnlineBatch = geminiApiKey.isNotEmpty ? 18 : 8;
         final needsOnline =
             (!t.isFromOfflineBundle || geminiApiKey.isNotEmpty) &&
                 enableOnlineLookup &&
-                toFetchOnline.length < 8;
+                toFetchOnline.length < maxOnlineBatch;
         if (needsOnline) {
           toFetchOnline.add(i);
         }
       }
     }
 
-    // 4. Context-Aware API / LLM Translation (sends full sentence + offline glossary)
-    //    and persists results to `dict_cache` keyed by `(word, sentence_hash)`
+    // 4. Context-Aware API / LLM Translation:
+    //    - When Gemini API key is configured: send ONE single batched JSON array request
+    //      for up to 18 tokens (saves tokens & prevents 429 rate-limit errors).
+    //    - Otherwise: fall back to dictionaryapi.dev + Google Translate GTX (max 8).
     if (toFetchOnline.isNotEmpty &&
         mode == LearningLanguageMode.englishForVietnamese) {
       final now = DateTime.now().millisecondsSinceEpoch;
       final cacheBatch = db.batch();
+      bool handledByGeminiBatch = false;
 
-      await Future.wait(
-        toFetchOnline.map((idx) async {
-          final current = enriched[idx];
-          final sHash = computeSentenceHash(current.sourceSentence);
-          final glossaryHint = current.isFromOfflineBundle
-              ? current.translation
-              : current.radicals
-                  .map((r) => '${r.symbol} (${r.meaning})')
-                  .join(', ');
+      if (geminiApiKey.isNotEmpty) {
+        final batchItems = toFetchOnline.map((idx) {
+          final c = enriched[idx];
+          return {
+            'word': c.surfaceWord,
+            'lemma': c.lemma,
+            'predicted_pos': c.partOfSpeech,
+            'sentence': c.sourceSentence,
+          };
+        }).toList();
 
-          final online = await _lookupContextualEnVi(
-            word: current.surfaceWord,
-            lemma: current.lemma,
-            sentence: current.sourceSentence,
-            glossaryHint: glossaryHint,
-            geminiApiKey: geminiApiKey,
-          ).timeout(const Duration(seconds: 4), onTimeout: () => null);
+        final geminiBatchResults = await _fetchGeminiBatchContextual(
+          items: batchItems,
+          apiKey: geminiApiKey,
+        ).timeout(const Duration(seconds: 8), onTimeout: () => const {});
 
-          if (online != null) {
-            final updatedUs = current.phoneticUs.isNotEmpty
-                ? current.phoneticUs
-                : (online['ipa_us'] ?? '');
-            final updatedUk = current.phoneticUk.isNotEmpty
-                ? current.phoneticUk
-                : (online['ipa_uk'] ?? '');
+        if (geminiBatchResults.isNotEmpty) {
+          handledByGeminiBatch = true;
+          for (final idx in toFetchOnline) {
+            final current = enriched[idx];
+            final item = geminiBatchResults[current.surfaceWord.toLowerCase()];
+            if (item == null) continue;
+
+            final pos = (item['pos'] ?? '').trim().isNotEmpty
+                ? item['pos']!.trim()
+                : current.partOfSpeech;
+            final rawMeaning = (item['meaning'] ?? '').trim();
+            final formattedMeaning = rawMeaning.isNotEmpty
+                ? (rawMeaning.startsWith('(') || pos.isEmpty
+                    ? rawMeaning
+                    : '($pos) $rawMeaning')
+                : current.translation;
+            final lemma = (item['lemma'] ?? '').trim().isNotEmpty
+                ? item['lemma']!.trim().toLowerCase()
+                : current.lemma;
+
             final updated = ExtractedTokenModel(
               surfaceWord: current.surfaceWord,
-              lemma: current.lemma,
-              phonetic: online['ipa']!.isNotEmpty
-                  ? online['ipa']!
-                  : current.phonetic,
-              phoneticUs: updatedUs,
-              phoneticUk: updatedUk,
-              translation: online['translation']!.isNotEmpty
-                  ? online['translation']!
-                  : current.translation,
-              partOfSpeech: online['pos']!.isNotEmpty
-                  ? online['pos']!
-                  : current.partOfSpeech,
+              lemma: lemma,
+              phonetic: current.phonetic,
+              phoneticUs: current.phoneticUs,
+              phoneticUk: current.phoneticUk,
+              translation: formattedMeaning,
+              partOfSpeech: pos,
               sourceSentence: current.sourceSentence,
               clozeSentence: current.clozeSentence,
-              audioUrl: online['audio'] ?? '',
+              audioUrl: current.audioUrl,
               radicals: current.radicals,
               isFromOfflineBundle: true,
             );
             enriched[idx] = updated;
+            final sHash = computeSentenceHash(updated.sourceSentence);
             cacheBatch.insert(
               'dict_cache',
               {
@@ -947,8 +1232,82 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
               conflictAlgorithm: ConflictAlgorithm.replace,
             );
           }
-        }),
-      ).timeout(const Duration(seconds: 6), onTimeout: () => const []);
+        }
+      }
+
+      if (!handledByGeminiBatch) {
+        final fallbackIndices = toFetchOnline.take(8).toList();
+        await Future.wait(
+          fallbackIndices.map((idx) async {
+            final current = enriched[idx];
+            final sHash = computeSentenceHash(current.sourceSentence);
+            final glossaryHint = current.isFromOfflineBundle
+                ? current.translation
+                : current.radicals
+                    .map((r) => '${r.symbol} (${r.meaning})')
+                    .join(', ');
+
+            final online = await _lookupContextualEnVi(
+              word: current.surfaceWord,
+              lemma: current.lemma,
+              sentence: current.sourceSentence,
+              glossaryHint: glossaryHint,
+              geminiApiKey: '',
+            ).timeout(const Duration(seconds: 4), onTimeout: () => null);
+
+            if (online != null) {
+              final updatedUs = current.phoneticUs.isNotEmpty
+                  ? current.phoneticUs
+                  : IpaNormalizer.normalize(online['ipa_us'] ?? '');
+              final updatedUk = current.phoneticUk.isNotEmpty
+                  ? current.phoneticUk
+                  : IpaNormalizer.normalize(online['ipa_uk'] ?? '');
+              final updatedIpa = online['ipa']!.isNotEmpty
+                  ? IpaNormalizer.normalize(online['ipa']!)
+                  : current.phonetic;
+              final updated = ExtractedTokenModel(
+                surfaceWord: current.surfaceWord,
+                lemma: current.lemma,
+                phonetic: updatedIpa,
+                phoneticUs: updatedUs,
+                phoneticUk: updatedUk,
+                translation: online['translation']!.isNotEmpty
+                    ? online['translation']!
+                    : current.translation,
+                partOfSpeech: online['pos']!.isNotEmpty
+                    ? online['pos']!
+                    : current.partOfSpeech,
+                sourceSentence: current.sourceSentence,
+                clozeSentence: current.clozeSentence,
+                audioUrl: online['audio'] ?? '',
+                radicals: current.radicals,
+                isFromOfflineBundle: true,
+              );
+              enriched[idx] = updated;
+              cacheBatch.insert(
+                'dict_cache',
+                {
+                  'word': updated.surfaceWord,
+                  'sentence_hash': sHash,
+                  'context_sentence': updated.sourceSentence,
+                  'lemma': updated.lemma,
+                  'phonetic': updated.phonetic,
+                  'phonetic_us': updated.phoneticUs,
+                  'phonetic_uk': updated.phoneticUk,
+                  'translation': updated.translation,
+                  'part_of_speech': updated.partOfSpeech,
+                  'audio_url': updated.audioUrl,
+                  'radicals_json': jsonEncode(
+                    updated.radicals.map((r) => r.toJson()).toList(),
+                  ),
+                  'updated_at': now,
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+          }),
+        ).timeout(const Duration(seconds: 6), onTimeout: () => const []);
+      }
 
       try {
         await cacheBatch
@@ -958,6 +1317,72 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
     }
 
     return enriched;
+  }
+
+  /// Single-batch Gemini API request for up to 18 tokens at once.
+  /// Requests a structured JSON array:
+  /// `[{"word": "...", "lemma": "...", "pos": "...", "meaning": "...", "root": "..."}]`
+  /// to save tokens and prevent 429 rate-limit errors.
+  Future<Map<String, Map<String, String>>> _fetchGeminiBatchContextual({
+    required List<Map<String, String>> items,
+    required String apiKey,
+  }) async {
+    if (items.isEmpty || apiKey.isEmpty) return const {};
+    try {
+      final payloadJson = jsonEncode(items);
+      final prompt =
+          'For each English word/phrase in the JSON list below, provide its accurate '
+          'contextual Vietnamese meaning matching its exact sentence and grammatical role.\n'
+          'Input: $payloadJson\n'
+          'Reply strictly as a JSON array of objects with keys: '
+          '[{"word": "exact input word", "lemma": "base form", "pos": "noun|verb|adj|adv|phrase", '
+          '"meaning": "concise Vietnamese meaning in context", "root": "true etymological root or empty"}].';
+
+      final response = await _dio.post<Map<String, dynamic>>(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
+        data: {
+          'contents': [
+            {
+              'parts': [
+                {'text': prompt},
+              ],
+            },
+          ],
+          'generationConfig': {
+            'temperature': 0.1,
+            'responseMimeType': 'application/json',
+          },
+        },
+      );
+
+      final candidates = response.data?['candidates'] as List?;
+      if (candidates == null || candidates.isEmpty) return const {};
+      final content =
+          (candidates.first as Map)['content'] as Map<String, dynamic>?;
+      final parts = content?['parts'] as List?;
+      if (parts == null || parts.isEmpty) return const {};
+      final text = ((parts.first as Map)['text'] as String?)?.trim() ?? '';
+      if (text.isEmpty) return const {};
+
+      final decoded = jsonDecode(text);
+      if (decoded is! List) return const {};
+      final out = <String, Map<String, String>>{};
+      for (final entry in decoded) {
+        if (entry is Map) {
+          final w = (entry['word']?.toString() ?? '').trim().toLowerCase();
+          if (w.isEmpty) continue;
+          out[w] = {
+            'lemma': (entry['lemma']?.toString() ?? '').trim(),
+            'pos': (entry['pos']?.toString() ?? '').trim(),
+            'meaning': (entry['meaning']?.toString() ?? '').trim(),
+            'root': (entry['root']?.toString() ?? '').trim(),
+          };
+        }
+      }
+      return out;
+    } catch (_) {
+      return const {};
+    }
   }
 
   /// Pipeline: Offline Dictionary Glossary -> Contextual LLM (Gemini with Sentence + Glossary)

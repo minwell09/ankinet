@@ -22,6 +22,7 @@ class NlpExtractorRepositoryImpl implements NlpExtractorRepository {
     String rawText, {
     LearningLanguageMode mode = LearningLanguageMode.englishForVietnamese,
     bool enableOnlineLookup = true,
+    String? deckId,
   }) async {
     try {
       final db = await localDatabase.database;
@@ -33,15 +34,23 @@ class NlpExtractorRepositoryImpl implements NlpExtractorRepository {
 
       if (models.isEmpty) return const Right([]);
 
-      // Check only the extracted words against existing cards using indexed WHERE IN
+      // Deck-scoped duplicate check when deckId is provided so users can add
+      // the same word to different decks if desired.
       final words = models.map((m) => m.surfaceWord).toList();
       final placeholders = List.filled(words.length, '?').join(',');
-      final existingRows = await db.query(
-        'cards',
-        columns: ['word'],
-        where: 'word IN ($placeholders)',
-        whereArgs: words,
-      );
+      final existingRows = (deckId != null && deckId.isNotEmpty)
+          ? await db.query(
+              'cards',
+              columns: const ['word'],
+              where: 'deck_id = ? AND word IN ($placeholders)',
+              whereArgs: [deckId, ...words],
+            )
+          : await db.query(
+              'cards',
+              columns: const ['word'],
+              where: 'word IN ($placeholders)',
+              whereArgs: words,
+            );
       final existingWords =
           existingRows.map((r) => r['word'] as String).toSet();
 

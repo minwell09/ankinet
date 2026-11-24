@@ -83,7 +83,7 @@ class NlpExtractorNotifier extends StateNotifier<NlpExtractorState> {
     );
   }
 
-  Future<void> analyzeText(String input) async {
+  Future<void> analyzeText(String input, {String? deckId}) async {
     if (input.trim().isEmpty) {
       state = state.copyWith(
         rawText: input,
@@ -109,6 +109,7 @@ class NlpExtractorNotifier extends StateNotifier<NlpExtractorState> {
         input,
         mode: state.mode,
         enableOnlineLookup: settings.enableOnlineLookup,
+        deckId: deckId,
       );
       sw.stop();
 

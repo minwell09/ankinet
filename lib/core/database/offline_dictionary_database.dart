@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
+import '../utils/ipa_normalizer.dart';
 import 'db_factory.dart';
 
 class OfflineDictEntry {
@@ -88,6 +89,15 @@ class OfflineDictionaryDatabase {
 
       _db = await openDatabase(targetPath, readOnly: true)
           .timeout(const Duration(seconds: 5));
+
+      // Apply read-only SQLite performance pragmas on native platforms
+      if (!kIsWeb && _db != null) {
+        try {
+          await _db!.execute('PRAGMA query_only = ON');
+          await _db!.execute('PRAGMA mmap_size = 33554432');
+          await _db!.execute('PRAGMA cache_size = -8000');
+        } catch (_) {}
+      }
       return _db;
     } catch (_) {
       return null;
@@ -129,9 +139,11 @@ class OfflineDictionaryDatabase {
         for (final row in rows) {
           final w = (row['word'] as String?) ?? '';
           if (w.isEmpty) continue;
-          final ipa = (row['ipa'] as String?) ?? '';
-          final ipaUs = (row['ipa_us'] as String?) ?? '';
-          final ipaUk = (row['ipa_uk'] as String?) ?? '';
+          final ipa = IpaNormalizer.normalize((row['ipa'] as String?) ?? '');
+          final ipaUs =
+              IpaNormalizer.normalize((row['ipa_us'] as String?) ?? '');
+          final ipaUk =
+              IpaNormalizer.normalize((row['ipa_uk'] as String?) ?? '');
           result[w] = OfflineDictEntry(
             word: w,
             ipa: ipa.isNotEmpty ? ipa : (ipaUs.isNotEmpty ? ipaUs : ipaUk),

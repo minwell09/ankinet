@@ -11,6 +11,7 @@ abstract class NlpExtractorRepository {
     String rawText, {
     LearningLanguageMode mode = LearningLanguageMode.englishForVietnamese,
     bool enableOnlineLookup = true,
+    String? deckId,
   });
 
   /// Saves user-selected tokens as Anki flashcards AND creates nodes/edges

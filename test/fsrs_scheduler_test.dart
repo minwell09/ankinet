@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -9,6 +11,7 @@ import 'package:vocab_anki/core/srs/fsrs_scheduler.dart';
 import 'package:vocab_anki/core/srs/fsrs_weight_optimizer.dart';
 import 'package:vocab_anki/core/srs/sm2_scheduler.dart';
 import 'package:vocab_anki/core/utils/cloze_masker.dart';
+import 'package:vocab_anki/core/utils/ipa_normalizer.dart';
 import 'package:vocab_anki/features/decks/data/repositories/deck_repository_impl.dart';
 import 'package:vocab_anki/features/decks/domain/entities/vocab_card.dart';
 import 'package:vocab_anki/features/nlp_extractor/data/datasources/nlp_analyzer_datasource.dart';
@@ -649,6 +652,80 @@ void main() {
         expect(relatedWords, isNot(contains('green')));
         expect(relatedWords, isNot(contains('uneven')));
         expect(relatedWords, isNot(contains('wooden')));
+      },
+    );
+
+    test(
+      'IpaNormalizer, Context-Window POS, Phrasal Verbs MWE & Deck-Scoped Duplicates',
+      () async {
+        // 1. Broad Learner IPA Normalization
+        expect(IpaNormalizer.normalize('/ˈɫɪft/'), '/lɪft/');
+        expect(IpaNormalizer.normalize('/lˈɪft/'), '/lɪft/');
+        expect(IpaNormalizer.normalize('/ˈtɹænspɔɹt/'), '/ˈtrænspɔrt/');
+
+        // 2. Context-Window POS + Multi-Word Phrasal Verbs against offline_dict.db
+        final dictAssetPath = p.join(
+          Directory.current.path,
+          'assets',
+          'nlp',
+          'offline_dict.db',
+        );
+        final offlineDict =
+            OfflineDictionaryDatabase(overridePath: dictAssetPath);
+        final analyzer = HybridNlpAnalyzerDataSourceImpl(
+          localDatabase: localDb,
+          offlineDictionaryDatabase: offlineDict,
+        );
+        final nlpRepo = NlpExtractorRepositoryImpl(
+          analyzerDataSource: analyzer,
+          localDatabase: localDb,
+        );
+
+        const sentence =
+            'The fog began to lift as we look forward to the trip and never give up.';
+        final extracted = await analyzer.tokenizeAndAnalyze(
+          sentence,
+          enableOnlineLookup: false,
+        );
+        final byWord = {for (final t in extracted) t.surfaceWord: t};
+
+        // Phrasal verbs extracted as cohesive tokens with phrase Cloze masking
+        expect(byWord.containsKey('look forward to'), isTrue);
+        expect(byWord.containsKey('give up'), isTrue);
+        expect(byWord['look forward to']!.clozeSentence, contains('[...]'));
+        expect(byWord['give up']!.clozeSentence, contains('[...]'));
+
+        // Context-window POS predicts 'lift' after "began to" as verb & normalizes IPA
+        expect(byWord['lift']?.partOfSpeech, 'verb');
+        expect(byWord['lift']?.phoneticUs, isNot(contains('ɫ')));
+
+        // 3. Deck-scoped duplicate check
+        final newDeckRes = await deckRepo.createDeck(
+          name: 'Second Deck',
+          description: 'Test deck',
+        );
+        final secondDeckId = newDeckRes.getOrElse((_) => throw Exception()).id;
+
+        final inDefault = await nlpRepo.analyzeText(
+          'Engineers inspect the structure.',
+          enableOnlineLookup: false,
+          deckId: 'default_deck',
+        );
+        final inSecond = await nlpRepo.analyzeText(
+          'Engineers inspect the structure.',
+          enableOnlineLookup: false,
+          deckId: secondDeckId,
+        );
+        final inspectDefault = inDefault
+            .getOrElse((_) => const [])
+            .firstWhere((t) => t.surfaceWord == 'inspect');
+        final inspectSecond = inSecond
+            .getOrElse((_) => const [])
+            .firstWhere((t) => t.surfaceWord == 'inspect');
+        expect(inspectDefault.isAlreadySaved, isTrue);
+        expect(inspectSecond.isAlreadySaved, isFalse);
+
+        await offlineDict.close();
       },
     );
   });

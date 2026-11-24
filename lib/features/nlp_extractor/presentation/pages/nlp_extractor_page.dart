@@ -34,12 +34,20 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
     super.dispose();
   }
 
+  String? _resolveSelectedDeckId() {
+    final decks = ref.read(deckListProvider).valueOrNull ?? const [];
+    if (_selectedDeckId != null && decks.any((d) => d.id == _selectedDeckId)) {
+      return _selectedDeckId;
+    }
+    return decks.isNotEmpty ? decks.first.id : null;
+  }
+
   Future<void> _quickPaste(NlpExtractorNotifier notifier) async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim() ?? '';
     if (text.isNotEmpty) {
       _textController.text = text;
-      await notifier.analyzeText(text);
+      await notifier.analyzeText(text, deckId: _resolveSelectedDeckId());
     }
   }
 
@@ -166,7 +174,10 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
                             : 'TOKENIZE & TRANSCRIBE'),
                     onPressed: isAnalyzing
                         ? null
-                        : () => notifier.analyzeText(_textController.text),
+                        : () => notifier.analyzeText(
+                              _textController.text,
+                              deckId: _resolveSelectedDeckId(),
+                            ),
                   ),
                 ],
               ),

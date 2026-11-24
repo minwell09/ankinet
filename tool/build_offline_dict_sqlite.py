@@ -16,6 +16,7 @@ Data Sources & Licenses:
 """
 import json
 import os
+import re
 import shutil
 import sqlite3
 import sys
@@ -72,6 +73,25 @@ def load_wordnet_exceptions(wordnet_zip_path: str) -> dict:
     return irregulars
 
 
+_VOWEL_NUCLEUS_RE = re.compile(r"[aeiouɑɒæʌəɜɛɪɔʊʉɝɚ]+", re.IGNORECASE)
+
+
+def normalize_learner_ipa(raw_ipa: str) -> str:
+    """Normalizes narrow IPA allophones (ɫ->l, ɹ->r) and removes redundant ˈ on monosyllables."""
+    trimmed = (raw_ipa or "").strip()
+    if not trimmed:
+        return ""
+    had_slashes = trimmed.startswith("/") and trimmed.endswith("/")
+    inner = trimmed[1:-1].strip() if had_slashes else trimmed
+    inner = inner.replace("ɫ", "l").replace("ɹ", "r")
+    if " " not in inner and "." not in inner:
+        if len(_VOWEL_NUCLEUS_RE.findall(inner)) <= 1 and "ˌ" not in inner:
+            inner = inner.replace("ˈ", "").replace("'", "")
+    if not inner:
+        return ""
+    return f"/{inner}/" if had_slashes else inner
+
+
 def load_ipa_dict_file(path: str) -> dict:
     """Loads an open-dict-data/ipa-dict TSV file (word<TAB>/ipa1/, /ipa2/) -> {word: '/ipa1/'}."""
     ipa_map = {}
@@ -86,8 +106,8 @@ def load_ipa_dict_file(path: str) -> dict:
             word = raw_word.strip().lower()
             if not word or len(word) > 45:
                 continue
-            # Keep primary pronunciation (first entry before comma)
-            primary_ipa = raw_ipa.split(",")[0].strip()
+            # Keep primary pronunciation (first entry before comma) normalized for learners
+            primary_ipa = normalize_learner_ipa(raw_ipa.split(",")[0].strip())
             if primary_ipa and word not in ipa_map:
                 ipa_map[word] = primary_ipa
     return ipa_map

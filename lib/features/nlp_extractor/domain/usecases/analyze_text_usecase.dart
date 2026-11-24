@@ -14,6 +14,7 @@ class AnalyzeTextUseCase {
     String rawText, {
     LearningLanguageMode mode = LearningLanguageMode.englishForVietnamese,
     bool enableOnlineLookup = true,
+    String? deckId,
   }) {
     if (rawText.trim().isEmpty) {
       return Future.value(const Right([]));
@@ -22,6 +23,7 @@ class AnalyzeTextUseCase {
       rawText,
       mode: mode,
       enableOnlineLookup: enableOnlineLookup,
+      deckId: deckId,
     );
   }
 }

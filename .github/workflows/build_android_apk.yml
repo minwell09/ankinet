@@ -1,0 +1,50 @@
+name: Build Android APK & Web Preview
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-apk-and-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Install dependencies & setup web sqlite3 wasm
+        run: |
+          flutter pub get
+          dart run sqflite_common_ffi_web:setup --force
+
+      - name: Run unit tests
+        run: flutter test
+
+      - name: Build Split-per-ABI Release APKs
+        run: flutter build apk --release --split-per-abi
+
+      - name: Build Unified Flutter Web App
+        run: flutter build web --release
+
+      - name: Upload Split-per-ABI Release APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: VocabAnki-v6.0-FSRS-split-apks
+          path: build/app/outputs/flutter-apk/app-*-release.apk
+
+      - name: Upload Unified Web Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: VocabAnki-v6.0-FSRS-web
+          path: build/web/

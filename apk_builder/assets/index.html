@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#2563eb" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <link rel="manifest" href="manifest.json" />
+  <title>VocabAnki v5.0 — Học Tiếng Anh Cho Người Việt (EN ➔ VI)</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-container: #dbeafe;
+      --on-primary-container: #1e3a8a;
+      --tertiary: #7c3aed;
+      --tertiary-container: #ede9fe;
+      --on-tertiary-container: #4c1d95;
+      --surface: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --subtext: #475569;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      color: var(--text);
+    }
+    .header-banner {
+      color: #f8fafc;
+      text-align: center;
+      margin-bottom: 12px;
+      max-width: 680px;
+    }
+    .header-banner h1 { font-size: 18px; font-weight: 700; }
+    .header-banner p { font-size: 12.5px; color: #94a3b8; margin-top: 4px; }
+
+    .download-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .dl-btn {
+      text-decoration: none;
+      background: #10b981;
+      color: #ffffff;
+      padding: 7px 13px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    .dl-btn.secondary {
+      background: #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .mode-switcher {
+      display: inline-flex;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 999px;
+      padding: 4px;
+      margin-top: 8px;
+      gap: 4px;
+    }
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: #cbd5e1;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .mode-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .phone-frame {
+      width: 416px;
+      max-width: 100%;
+      height: 790px;
+      background: var(--surface);
+      border-radius: 38px;
+      border: 10px solid #334155;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.55);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    @media (max-width: 500px) {
+      body { padding: 0; background: var(--surface); }
+      .header-banner { display: none; }
+      .phone-frame {
+        width: 100vw;
+        height: 100vh;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .status-bar { display: none; }
+    }
+    body.native-apk { padding: 0; background: var(--surface); }
+    body.native-apk .header-banner { display: none; }
+    body.native-apk .phone-frame {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+    }
+    body.native-apk .status-bar { display: none; }
+
+    .status-bar {
+      height: 28px;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--subtext);
+      border-bottom: 1px solid var(--border);
+    }
+    .app-bar {
+      height: 54px;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .app-bar h2 { font-size: 16px; font-weight: 700; color: var(--text); }
+    .badge {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-weight: 600;
+    }
+
+    .screen-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    }
+    .btn {
+      border: none;
+      border-radius: 12px;
+      padding: 11px 14px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn:disabled { opacity: 0.65; cursor: wait; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-tonal { background: var(--primary-container); color: var(--on-primary-container); }
+    .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+    .tts-btn {
+      border: none;
+      background: #eff6ff;
+      color: var(--primary);
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    textarea {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 8px 12px 10px 12px;
+      font-size: 13.5px;
+      resize: none;
+      background: transparent;
+      color: var(--text);
+      line-height: 1.45;
+    }
+    textarea:focus { outline: none; }
+    .input-field-box {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: var(--card);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .input-field-box:focus-within {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+    .input-quick-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 10px 4px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid var(--border);
+      gap: 6px;
+    }
+    .input-quick-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--subtext);
+    }
+    .input-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quick-chip-btn {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 9px;
+      font-size: 11.5px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+    .quick-chip-btn.paste {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border-color: #bfdbfe;
+    }
+    .quick-chip-btn.paste:hover {
+      background: #dbeafe;
+    }
+    .quick-chip-btn.clear {
+      background: #fef2f2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+    .quick-chip-btn.clear:hover {
+      background: #fee2e2;
+    }
+
+    .paragraph-translation-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 9px 12px;
+      font-size: 12.5px;
+      color: #14532d;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .token-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 11px 13px;
+      border: 2px solid transparent;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .token-card.selected {
+      border-color: var(--primary);
+      background: #f8fbff;
+    }
+    .token-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+    .token-word { font-size: 17px; font-weight: 700; color: #0f172a; }
+    .token-phonetic { font-size: 12.5px; color: var(--primary); font-family: monospace; font-weight: 600; }
+    .token-trans { font-size: 13px; color: #1e293b; font-weight: 500; margin: 5px 0 8px 24px; line-height: 1.35; }
+    .radical-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-left: 24px;
+    }
+    .radical-chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--tertiary-container);
+      color: var(--on-tertiary-container);
+    }
+
+    .flashcard-box {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      min-height: 320px;
+    }
+    .flashcard-word { font-size: 34px; font-weight: 800; margin-bottom: 6px; }
+    .flashcard-phonetic { font-size: 16px; color: var(--primary); font-family: monospace; margin-bottom: 12px; }
+    .flashcard-meaning { font-size: 18px; font-weight: 700; color: #0f172a; margin-bottom: 10px; }
+    .flashcard-context { font-size: 12.5px; color: var(--subtext); font-style: italic; margin-top: 8px; }
+    .srs-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+    .srs-btn {
+      padding: 10px 4px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .srs-btn span { font-size: 10px; font-weight: 500; opacity: 0.85; }
+
+    .bottom-nav {
+      height: 66px;
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+      color: var(--subtext);
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 6px 0;
+    }
+    .nav-item.active { color: var(--primary); }
+    .nav-pill {
+      padding: 3px 16px;
+      border-radius: 999px;
+      font-size: 16px;
+    }
+    .nav-item.active .nav-pill { background: var(--primary-container); }
+
+    .toast {
+      position: absolute;
+      bottom: 78px;
+      left: 16px;
+      right: 16px;
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-banner">
+    <h1>VocabAnki v5.0 — Chế độ Học Tiếng Anh cho Người Việt (EN ➔ VI)</h1>
+    <p>Tra cứu Từ điển IPA chuẩn + Dịch nghĩa Tiếng Việt mọi đoạn văn + Bộ thẻ Anki (SM-2 Offline)</p>
+
+    <div class="download-bar">
+      <a class="dl-btn" href="https://huggingface.co/spaces/minwell09/vocab-nlp-backend/resolve/main/VocabAnki-Offline-v5.0.apk?download=true" download="VocabAnki-Offline-v5.0.apk" target="_blank">
+        🤖 Tải File Cài Đặt Android (.APK Offline v5.0)
+      </a>
+      <a class="dl-btn secondary" href="https://huggingface.co/spaces/minwell09/vocab-nlp-backend/tree/main" target="_blank">
+        📦 Xem Source Code trên Hugging Face
+      </a>
+    </div>
+
+    <div class="mode-switcher">
+      <button class="mode-btn active" id="mode-en-vi" onclick="setLanguageMode('en_vi')">🇬🇧 ➔ 🇻🇳 Tiếng Anh cho người Việt</button>
+      <button class="mode-btn" id="mode-cjk" onclick="setLanguageMode('cjk')">🇨🇳 ➔ 🇻🇳 Chữ Hán & Bộ Thủ</button>
+    </div>
+  </div>
+
+  <div class="phone-frame">
+    <div class="status-bar">
+      <span>12:05</span>
+      <span id="mode-status-tag">EN ➔ VI • Offline NLP v5.0</span>
+    </div>
+
+    <div class="app-bar">
+      <h2 id="screen-title">Trích xuất từ vựng (EN ➔ VI)</h2>
+      <span class="badge" id="card-count-badge">6 Thẻ từ vựng</span>
+    </div>
+
+    <!-- TAB 1: DECKS & STUDY SESSION -->
+    <div class="screen-body" id="tab-decks" style="display: none;">
+      <div id="decks-list-view" style="display:flex; flex-direction:column; gap:12px;">
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:17px; font-weight:700;" id="deck-title">Từ Vựng Tiếng Anh (IELTS / Giao Tiếp)</div>
+            <div style="font-size:12.5px; color:var(--subtext); margin-top:4px;" id="deck-subtitle">
+              Ôn tập ngắt quãng SM-2 kèm phiên âm IPA, gốc từ & nghĩa Tiếng Việt
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px;">
+              <span class="badge" id="deck-total-pill">Tổng: 6 thẻ</span>
+              <span class="badge" style="background:#fef3c7; color:#92400e;" id="deck-due-pill">Cần ôn: 6</span>
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="startStudySession()">Ôn tập ngay</button>
+        </div>
+
+        <div class="card">
+          <div style="font-size:13.5px; font-weight:700; margin-bottom:8px;">Danh sách thẻ từ vựng đã lưu</div>
+          <div id="saved-cards-mini-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+
+      <!-- Study Session Sub-view -->
+      <div id="study-session-view" style="display:none; flex:1; flex-direction:column; gap:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <button class="btn btn-outline" style="padding:6px 12px; font-size:12px;" onclick="exitStudySession()">← Quay lại bộ thẻ</button>
+          <span style="font-size:12.5px; font-weight:600; color:var(--subtext);" id="study-progress-label">Thẻ 1 / 6</span>
+        </div>
+
+        <div class="card flashcard-box" id="flashcard-box">
+          <div class="flashcard-word" id="study-word">inspect</div>
+          <button class="tts-btn" onclick="speakCurrentStudyWord()" style="margin-bottom:8px;">🔊 Phát âm chuẩn</button>
+          <div id="study-answer-section" style="display:none;">
+            <div class="flashcard-phonetic" id="study-phonetic">/ɪnˈspekt/</div>
+            <hr style="border:none; border-top:1px solid var(--border); margin:10px 0;" />
+            <div class="flashcard-meaning" id="study-meaning">(v.) kiểm tra, thanh tra, xem xét kỹ</div>
+            <div class="radical-chips" id="study-radicals" style="justify-content:center; margin:10px 0;"></div>
+            <div class="flashcard-context" id="study-context"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="show-answer-btn" onclick="revealAnswer()">Hiện đáp án</button>
+
+        <div class="srs-grid" id="srs-grade-buttons" style="display:none;">
+          <button class="srs-btn" style="background:#fee2e2; color:#991b1b;" onclick="gradeCard('again')">
+            Quên (Again) <span>&lt; 1 ngày</span>
+          </button>
+          <button class="srs-btn" style="background:#ffedd5; color:#9a3412;" onclick="gradeCard('hard')">
+            Khó (Hard) <span>2 ngày</span>
+          </button>
+          <button class="srs-btn" style="background:#dcfce7; color:#166534;" onclick="gradeCard('good')">
+            Nhớ (Good) <span>4 ngày</span>
+          </button>
+          <button class="srs-btn" style="background:#dbeafe; color:#1e40af;" onclick="gradeCard('easy')">
+            Dễ (Easy) <span>7 ngày</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: NLP EXTRACTOR -->
+    <div class="screen-body" id="tab-extractor">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; background:#ecfdf5; border:1px solid #6ee7b7; padding:7px 11px; border-radius:10px; font-size:11.5px;">
+        <span style="font-weight:700; color:#065f46;">🟢 Embedded Offline CPU NLP v5.0</span>
+        <span id="offline-engine-metrics" style="color:#047857; font-family:monospace; font-weight:600;">CMUdict IPA + WordNet Lemma + VI</span>
+      </div>
+      <div style="font-size:12px; font-weight:600; color:var(--subtext);">
+        Nhập hoặc dán bất kỳ câu/đoạn văn Tiếng Anh nào → Tách từ, IPA & nghĩa Tiếng Việt:
+      </div>
+      <div class="input-field-box">
+        <div class="input-quick-bar">
+          <span class="input-quick-label">📝 Ô nhập văn bản</span>
+          <div class="input-quick-actions">
+            <button type="button" class="quick-chip-btn paste" onclick="quickPasteInput()" title="Dán nhanh từ bộ nhớ tạm">
+              📋 Dán nhanh
+            </button>
+            <button type="button" class="quick-chip-btn clear" onclick="quickClearInput()" title="Xóa nhanh nội dung">
+              🗑️ Xóa nhanh
+            </button>
+          </div>
+        </div>
+        <textarea id="nlp-input" rows="3" placeholder="Dán hoặc nhập đoạn văn Tiếng Anh vào đây...">Artificial intelligence is ubiquitous in modern education, helping students acquire knowledge and overcome incredible challenges.</textarea>
+      </div>
+      <button class="btn btn-primary" id="analyze-btn" onclick="runNlpExtraction()">
+        ✨ Phân tích Từ vựng, Phiên âm IPA & Nghĩa Tiếng Việt
+      </button>
+
+      <div class="paragraph-translation-box" id="paragraph-vi-box"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+        <span style="font-size:13px; font-weight:700;" id="extracted-count-label">Từ vựng trích xuất</span>
+        <span style="font-size:12px; color:var(--primary); cursor:pointer; font-weight:600;" onclick="toggleAllTokens()">Chọn / Bỏ chọn tất cả</span>
+      </div>
+
+      <div id="token-list" style="display:flex; flex-direction:column; gap:8px; flex:1; overflow-y:auto;"></div>
+
+      <button class="btn btn-tonal" id="save-tokens-btn" onclick="saveSelectedTokens()">
+        ➕ Tạo Flashcard & Lưu vào Bộ thẻ (Anki)
+      </button>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+      <div class="nav-item" id="nav-decks" onclick="switchTab('decks')">
+        <div class="nav-pill">🗂️</div>
+        <span>Bộ thẻ (Anki)</span>
+      </div>
+      <div class="nav-item active" id="nav-extractor" onclick="switchTab('extractor')">
+        <div class="nav-pill">✨</div>
+        <span>Tách từ NLP</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+    });
+
+    function triggerPwaInstall() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+      } else {
+        showToast('Trên điện thoại Android: Mở trang này bằng Chrome ➔ Nhấn biểu tượng ⋮ (góc trên phải) ➔ Chọn "Thêm vào màn hình chính" (Install App)!');
+      }
+    }
+
+    let currentMode = 'en_vi';
+    const wordCache = new Map();
+    const DEFAULT_BACKEND_URL = 'https://3ff6d1c5d3a2fe.lhr.life';
+
+    function getBackendCandidates() {
+      const saved = localStorage.getItem('vocab_anki_backend_url');
+      const inputEl = document.getElementById('custom-backend-url');
+      const custom = (inputEl && inputEl.value.trim()) || saved || DEFAULT_BACKEND_URL;
+      const list = [
+        custom.replace(/\/+$/, ''),
+        ...(window.location.protocol.startsWith('http') ? [window.location.origin] : []),
+        DEFAULT_BACKEND_URL,
+        'http://10.0.2.2:8080',
+        'http://localhost:8080',
+        'http://localhost:8000'
+      ];
+      return [...new Set(list.filter(Boolean))];
+    }
+
+    function saveCustomBackendUrl(val) {
+      const clean = (val || '').trim().replace(/\/+$/, '');
+      if (clean) {
+        try { localStorage.setItem('vocab_anki_backend_url', clean); } catch (_) {}
+      }
+    }
+
+    async function analyzeViaFastApiBackend(rawText) {
+      for (const base of getBackendCandidates()) {
+        try {
+          const res = await fetch(`${base}/api/v1/nlp/analyze`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              text: rawText,
+              max_tokens: 18,
+              include_stop_words: false,
+              auto_save_cards: false
+            })
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (data && Array.isArray(data.tokens)) {
+            const inputEl = document.getElementById('custom-backend-url');
+            if (inputEl) inputEl.value = base;
+            return data;
+          }
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    // Stop words to skip when extracting vocabulary from a paragraph
+    const STOP_WORDS = new Set([
+      'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'any', 'can',
+      'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him',
+      'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who',
+      'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use', 'that',
+      'with', 'have', 'this', 'will', 'your', 'from', 'they', 'know', 'want',
+      'been', 'good', 'much', 'some', 'time', 'very', 'when', 'come', 'here',
+      'just', 'like', 'long', 'make', 'many', 'more', 'only', 'over', 'such',
+      'take', 'than', 'them', 'well', 'were', 'what', 'into', 'about', 'after',
+      'their', 'there', 'which', 'would', 'could', 'should', 'these', 'those',
+      'where', 'while', 'being', 'other', 'through', 'between', 'because'
+    ]);
+
+
+    // =========================================================================
+    // EMBEDDED OFFLINE CPU-OPTIMIZED NLP BACKEND ENGINE (100% ON-DEVICE)
+    // Includes: 516 Core EN-VI Lexicon + 1,800 CMUdict IPA entries +
+    // WordNet Morphy Lemmatizer + 288 Greco-Latin Affixes/Roots + SM-2 Scheduler
+    // =========================================================================
+    const EMBEDDED_NLP_BUNDLE = {"offline_dict":{"ability":{"ipa":"/əbˈɪlətiː/","vi":"(n. - danh từ) khả năng, năng lực","pos":"noun"},"absolute":{"ipa":"/ˈæbsəlˌuːt/","vi":"(adj. - tính từ) tuyệt đối, hoàn toàn","pos":"adj"},"academic":{"ipa":"/ˌækədˈemɪk/","vi":"(adj. - tính từ) thuộc học thuật, đại học","pos":"adj"},"academy":{"ipa":"/əkˈædəmiː/","vi":"(n. - danh từ) học viện","pos":"noun"},"accuracy":{"ipa":"/ˈækjərəsiː/","vi":"(n. - danh từ) độ chính xác","pos":"noun"},"accurate":{"ipa":"/ˈækjərət/","vi":"(adj. - tính từ) chính xác, đúng đắn","pos":"adj"},"achieve":{"ipa":"/ətʃˈiːv/","vi":"(v. - động từ) đạt được, giành được","pos":"verb"},"achievement":{"ipa":"/ətʃˈiːvmənt/","vi":"(n. - danh từ) thành tựu, thành tích","pos":"noun"},"acquire":{"ipa":"/əkwˈaɪər/","vi":"(v. - động từ) đạt được, thu nhận, tiếp thu","pos":"verb"},"acquisition":{"ipa":"/ˌækwəzˈɪʃən/","vi":"(n. - danh từ) sự tiếp thu, sự thâu tóm","pos":"noun"},"admit":{"ipa":"/ədmˈɪt/","vi":"(v. - động từ) thừa nhận, nhận vào","pos":"verb"},"advantage":{"ipa":"/ædvˈæntɪdʒ/","vi":"(n. - danh từ) lợi thế, ưu điểm","pos":"noun"},"affect":{"ipa":"/əfˈekt/","vi":"(v. - động từ) ảnh hưởng, tác động đến","pos":"verb"},"algorithm":{"ipa":"/ˈælɡərˌɪðəm/","vi":"(n. - danh từ) thuật toán","pos":"noun"},"alternative":{"ipa":"/ɔːltˈɜːrnətɪv/","vi":"(adj. - tính từ) thay thế; phương án thay thế","pos":"adj"},"analysis":{"ipa":"/ənˈæləsəs/","vi":"(n. - danh từ) sự phân tích","pos":"noun"},"analyze":{"ipa":"/ˈænəlˌaɪz/","vi":"(v. - động từ) phân tích","pos":"verb"},"ancient":{"ipa":"/ˈeɪntʃənt/","vi":"(adj. - tính từ) cổ đại, xưa cũ","pos":"adj"},"apparent":{"ipa":"/əpˈerənt/","vi":"(adj. - tính từ) rõ ràng, bề ngoài","pos":"adj"},"application":{"ipa":"/ˌæpləkˈeɪʃən/","vi":"(n. - danh từ) ứng dụng, đơn đăng ký","pos":"noun"},"apply":{"ipa":"/əplˈaɪ/","vi":"(v. - động từ) áp dụng, ứng tuyển","pos":"verb"},"approach":{"ipa":"/əprˈoʊtʃ/","vi":"(v. - động từ) tiếp cận; phương pháp tiếp cận","pos":"verb"},"architecture":{"ipa":"/ˈɑːrkətˌektʃər/","vi":"(n. - danh từ) kiến trúc, cấu trúc hệ thống","pos":"noun"},"argument":{"ipa":"/ˈɑːrɡjəmənt/","vi":"(n. - danh từ) lập luận, cuộc tranh luận","pos":"noun"},"article":{"ipa":"/ˈɑːrtəkəl/","vi":"(n. - danh từ) bài báo, điều khoản","pos":"noun"},"artificial":{"ipa":"/ˌɑːrtəfˈɪʃəl/","vi":"(adj. - tính từ) nhân tạo","pos":"adj"},"assist":{"ipa":"/əsˈɪst/","vi":"(v. - động từ) hỗ trợ, giúp đỡ","pos":"verb"},"attitude":{"ipa":"/ˈætətˌuːd/","vi":"(n. - danh từ) thái độ, quan điểm","pos":"noun"},"attract":{"ipa":"/ətrˈækt/","vi":"(v. - động từ) thu hút, hấp dẫn","pos":"verb"},"audience":{"ipa":"/ˈɑːdiːəns/","vi":"(n. - danh từ) khán giả, thính giả","pos":"noun"},"audio":{"ipa":"/ˈɑːdiːˌoʊ/","vi":"(n. - danh từ) âm thanh, thính giác","pos":"noun"},"author":{"ipa":"/ˈɔːθər/","vi":"(n. - danh từ) tác giả","pos":"noun"},"automatic":{"ipa":"/ˌɔːtəmˈætɪk/","vi":"(adj. - tính từ) tự động","pos":"adj"},"automatically":{"ipa":"/ˌɔːtəmˈætɪkliː/","vi":"(adv. - trạng từ) một cách tự động","pos":"adv"},"autonomous":{"ipa":"/ɔːtˈɑːnəməs/","vi":"(adj. - tính từ) tự chủ, tự hành","pos":"adj"},"backend":{"ipa":"/bækˈend/","vi":"(n. - danh từ) hệ thống phía sau (máy chủ xử lý)","pos":"noun"},"bankrupt":{"ipa":"/bˈæŋkrəpt/","vi":"(adj. - tính từ) phá sản","pos":"adj"},"behavior":{"ipa":"/bɪhˈeɪvjər/","vi":"(n. - danh từ) hành vi, cách cư xử","pos":"noun"},"beneficial":{"ipa":"/bˌenəfˈɪʃəl/","vi":"(adj. - tính từ) có lợi, hữu ích","pos":"adj"},"benefit":{"ipa":"/bˈenəfɪt/","vi":"(n. - danh từ) lợi ích; mang lại lợi ích","pos":"noun"},"benevolent":{"ipa":"/bənˈevələnt/","vi":"(adj. - tính từ) nhân từ, thiện chí","pos":"adj"},"biography":{"ipa":"/baɪˈɑːɡrəfiː/","vi":"(n. - danh từ) tiểu sử","pos":"noun"},"biological":{"ipa":"/bˌaɪəlˈɑːdʒɪkəl/","vi":"(adj. - tính từ) thuộc sinh học","pos":"adj"},"biology":{"ipa":"/baɪˈɑːlədʒiː/","vi":"(n. - danh từ) sinh học","pos":"noun"},"build":{"ipa":"/bɪld/","vi":"(v. - động từ) xây dựng, tạo lập","pos":"verb"},"capable":{"ipa":"/kˈeɪpəbəl/","vi":"(adj. - tính từ) có năng lực, có khả năng","pos":"adj"},"capacity":{"ipa":"/kəpˈæsətiː/","vi":"(n. - danh từ) sức chứa, năng lực, công suất","pos":"noun"},"career":{"ipa":"/kərˈɪr/","vi":"(n. - danh từ) sự nghiệp, nghề nghiệp","pos":"noun"},"cause":{"ipa":"/kɑːz/","vi":"(n. - danh từ) nguyên nhân; gây ra","pos":"noun"},"certificate":{"ipa":"/sərtˈɪfɪkət/","vi":"(n. - danh từ) chứng chỉ, giấy chứng nhận","pos":"noun"},"challenge":{"ipa":"/tʃˈæləndʒ/","vi":"(n. - danh từ) thử thách, thách thức","pos":"noun"},"characteristic":{"ipa":"/kˌerəktərˈɪstɪk/","vi":"(n. - danh từ) đặc trưng, tính chất","pos":"noun"},"chemical":{"ipa":"/kˈeməkəl/","vi":"(adj. - tính từ) thuộc hóa học; hóa chất","pos":"adj"},"chronological":{"ipa":"/krˌɑːnəlˈɑːdʒɪkəl/","vi":"(adj. - tính từ) theo trình tự thời gian","pos":"adj"},"cognitive":{"ipa":"/kˈɑːɡnɪtɪv/","vi":"(adj. - tính từ) thuộc về nhận thức","pos":"adj"},"collect":{"ipa":"/kəlˈekt/","vi":"(v. - động từ) thu thập, sưu tầm","pos":"verb"},"collection":{"ipa":"/kəlˈekʃən/","vi":"(n. - danh từ) bộ sưu tập, sự thu thập","pos":"noun"},"college":{"ipa":"/kˈɑːlɪdʒ/","vi":"(n. - danh từ) trường cao đẳng / đại học","pos":"noun"},"commemorate":{"ipa":"/kəmˈemərˌeɪt/","vi":"(v. - động từ) kỷ niệm, tưởng nhớ","pos":"verb"},"commerce":{"ipa":"/kˈɑːmərs/","vi":"(n. - danh từ) thương mại, giao thương","pos":"noun"},"commercial":{"ipa":"/kəmˈɜːrʃəl/","vi":"(adj. - tính từ) thuộc thương mại","pos":"adj"},"commit":{"ipa":"/kəmˈɪt/","vi":"(v. - động từ) cam kết, thực hiện","pos":"verb"},"communicate":{"ipa":"/kəmjˈuːnəkˌeɪt/","vi":"(v. - động từ) giao tiếp, truyền đạt","pos":"verb"},"communication":{"ipa":"/kəmjˌuːnəkˈeɪʃən/","vi":"(n. - danh từ) sự giao tiếp, truyền thông, liên lạc","pos":"noun"},"community":{"ipa":"/kəmjˈuːnətiː/","vi":"(n. - danh từ) cộng đồng, dân cư","pos":"noun"},"compel":{"ipa":"/kəmpˈel/","vi":"(v. - động từ) buộc phải, thuyết phục","pos":"verb"},"complete":{"ipa":"/kəmplˈiːt/","vi":"(v. - động từ) hoàn thành; đầy đủ, trọn vẹn","pos":"verb"},"completely":{"ipa":"/kəmplˈiːtliː/","vi":"(adv. - trạng từ) một cách hoàn toàn","pos":"adv"},"complex":{"ipa":"/kˈɑːmpleks/","vi":"(adj. - tính từ) phức tạp; tổ hợp","pos":"adj"},"complexity":{"ipa":"/kəmplˈeksətiː/","vi":"(n. - danh từ) sự phức tạp, độ phức tạp","pos":"noun"},"complicate":{"ipa":"/kˈɑːmpləkˌeɪt/","vi":"(v. - động từ) làm phức tạp","pos":"verb"},"complicated":{"ipa":"/kˈɑːmpləkˌeɪtəd/","vi":"(adj. - tính từ) phức tạp, rắc rối","pos":"adj"},"component":{"ipa":"/kəmpˈoʊnənt/","vi":"(n. - danh từ) thành phần, bộ phận","pos":"noun"},"compose":{"ipa":"/kəmpˈoʊz/","vi":"(v. - động từ) soạn thảo, sáng tác, cấu thành","pos":"verb"},"comprehend":{"ipa":"/kˌɑːmpriːhˈend/","vi":"(v. - động từ) hiểu rõ, lĩnh hội","pos":"verb"},"comprehension":{"ipa":"/kˌɑːmpriːhˈenʃən/","vi":"(n. - danh từ) sự đọc hiểu, sự lĩnh hội","pos":"noun"},"comprehensive":{"ipa":"/kˌɑːmpriːhˈensɪv/","vi":"(adj. - tính từ) toàn diện, bao quát","pos":"adj"},"compress":{"ipa":"/kˈɑːmpres/","vi":"(v. - động từ) nén lại, ép","pos":"verb"},"conceive":{"ipa":"/kənsˈiːv/","vi":"(v. - động từ) hình thành ý tưởng, tưởng tượng","pos":"verb"},"concept":{"ipa":"/kˈɑːnsept/","vi":"(n. - danh từ) khái niệm, ý niệm","pos":"noun"},"conclude":{"ipa":"/kənklˈuːd/","vi":"(v. - động từ) kết luận, hoàn tất","pos":"verb"},"conclusion":{"ipa":"/kənklˈuːʒən/","vi":"(n. - danh từ) kết luận, phần kết","pos":"noun"},"conduct":{"ipa":"/kəndˈʌkt/","vi":"(v. - động từ) tiến hành, chỉ huy; hạnh kiểm","pos":"verb"},"confer":{"ipa":"/kənfˈɜːr/","vi":"(v. - động từ) bàn bạc, trao tặng","pos":"verb"},"conference":{"ipa":"/kˈɑːnfərəns/","vi":"(n. - danh từ) hội nghị, cuộc họp","pos":"noun"},"connect":{"ipa":"/kənˈekt/","vi":"(v. - động từ) kết nối, liên kết","pos":"verb"},"connection":{"ipa":"/kənˈekʃən/","vi":"(n. - danh từ) sự kết nối, mối liên hệ","pos":"noun"},"consequence":{"ipa":"/kˈɑːnsəkwəns/","vi":"(n. - danh từ) hậu quả, hệ quả","pos":"noun"},"conserve":{"ipa":"/kənsˈɜːrv/","vi":"(v. - động từ) bảo tồn, tiết kiệm","pos":"verb"},"consist":{"ipa":"/kənsˈɪst/","vi":"(v. - động từ) bao gồm, cốt ở","pos":"verb"},"constant":{"ipa":"/kˈɑːnstənt/","vi":"(adj. - tính từ) liên tục, không đổi; hằng số","pos":"adj"},"construct":{"ipa":"/kənstrˈʌkt/","vi":"(v. - động từ) xây dựng, kiến tạo","pos":"verb"},"construction":{"ipa":"/kənstrˈʌkʃən/","vi":"(n. - danh từ) sự xây dựng, công trình","pos":"noun"},"consume":{"ipa":"/kənsˈuːm/","vi":"(v. - động từ) tiêu thụ, tiêu dùng","pos":"verb"},"consumer":{"ipa":"/kənsˈuːmər/","vi":"(n. - danh từ) người tiêu dùng","pos":"noun"},"consumption":{"ipa":"/kənsˈʌmpʃən/","vi":"(n. - danh từ) sự tiêu thụ, lượng tiêu dùng","pos":"noun"},"contain":{"ipa":"/kəntˈeɪn/","vi":"(v. - động từ) chứa đựng, bao gồm, kiềm chế","pos":"verb"},"container":{"ipa":"/kəntˈeɪnər/","vi":"(n. - danh từ) thùng chứa, container ảo hóa","pos":"noun"},"containerized":{"ipa":"/kəntˈeɪnərˌaɪzd/","vi":"(adj. - tính từ) được đóng gói container","pos":"adj"},"contemporary":{"ipa":"/kəntˈempərˌeriː/","vi":"(adj. - tính từ) đương đại, cùng thời","pos":"adj"},"context":{"ipa":"/kˈɑːntekst/","vi":"(n. - danh từ) ngữ cảnh, bối cảnh","pos":"noun"},"contract":{"ipa":"/kˈɑːntrækt/","vi":"(n. - danh từ) hợp đồng; co lại","pos":"noun"},"contradict":{"ipa":"/kˌɑːntrədˈɪkt/","vi":"(v. - động từ) mâu thuẫn, phản bác","pos":"verb"},"control":{"ipa":"/kəntrˈoʊl/","vi":"(v. - động từ) kiểm soát, điều khiển","pos":"verb"},"convention":{"ipa":"/kənvˈenʃən/","vi":"(n. - danh từ) quy ước, hội nghị","pos":"noun"},"conventional":{"ipa":"/kənvˈenʃənəl/","vi":"(adj. - tính từ) theo tập quán, thông thường","pos":"adj"},"convert":{"ipa":"/kˈɑːnvərt/","vi":"(v. - động từ) chuyển đổi, cải đạo","pos":"verb"},"course":{"ipa":"/kɔːrs/","vi":"(n. - danh từ) khóa học, lộ trình","pos":"noun"},"create":{"ipa":"/kriːˈeɪt/","vi":"(v. - động từ) tạo ra, sáng tạo","pos":"verb"},"creative":{"ipa":"/kriːˈeɪtɪv/","vi":"(adj. - tính từ) sáng tạo","pos":"adj"},"creativity":{"ipa":"/krˌiːeɪtˈɪvətiː/","vi":"(n. - danh từ) sự sáng tạo, óc sáng tạo","pos":"noun"},"credible":{"ipa":"/krˈedəbəl/","vi":"(adj. - tính từ) đáng tin cậy","pos":"adj"},"critical":{"ipa":"/krˈɪtɪkəl/","vi":"(adj. - tính từ) mang tính phê phán; then chốt","pos":"adj"},"criticize":{"ipa":"/krˈɪtɪsˌaɪz/","vi":"(v. - động từ) phê bình, chỉ trích","pos":"verb"},"cultural":{"ipa":"/kˈʌltʃərəl/","vi":"(adj. - tính từ) thuộc văn hóa","pos":"adj"},"culture":{"ipa":"/kˈʌltʃər/","vi":"(n. - danh từ) văn hóa; nuôi cấy","pos":"noun"},"current":{"ipa":"/kˈɜːrənt/","vi":"(adj. - tính từ) hiện hành, dòng chảy","pos":"adj"},"currently":{"ipa":"/kˈɜːrəntliː/","vi":"(adv. - trạng từ) hiện tại, đang","pos":"adv"},"curriculum":{"ipa":"/kərˈɪkjələm/","vi":"(n. - danh từ) chương trình giảng dạy","pos":"noun"},"database":{"ipa":"/dˈeɪtəbˌeɪs/","vi":"(n. - danh từ) cơ sở dữ liệu","pos":"noun"},"debate":{"ipa":"/dəbˈeɪt/","vi":"(n. - danh từ) cuộc tranh luận; thảo luận","pos":"noun"},"deceive":{"ipa":"/dɪsˈiːv/","vi":"(v. - động từ) đánh lừa, lừa dối","pos":"verb"},"decrease":{"ipa":"/dɪkrˈiːs/","vi":"(v. - động từ) giảm xuống; sự sụt giảm","pos":"verb"},"define":{"ipa":"/dɪfˈaɪn/","vi":"(v. - động từ) định nghĩa, xác định","pos":"verb"},"definition":{"ipa":"/dˌefənˈɪʃən/","vi":"(n. - danh từ) định nghĩa, độ phân giải","pos":"noun"},"degree":{"ipa":"/dɪɡrˈiː/","vi":"(n. - danh từ) bằng cấp, mức độ, độ","pos":"noun"},"demonstrate":{"ipa":"/dˈemənstrˌeɪt/","vi":"(v. - động từ) chứng minh, trình diễn","pos":"verb"},"demonstration":{"ipa":"/dˌemənstrˈeɪʃən/","vi":"(n. - danh từ) sự chứng minh, cuộc biểu tình","pos":"noun"},"deport":{"ipa":"/dɪpˈɔːrt/","vi":"(v. - động từ) trục xuất","pos":"verb"},"describe":{"ipa":"/dɪskrˈaɪb/","vi":"(v. - động từ) mô tả, miêu tả","pos":"verb"},"description":{"ipa":"/dɪskrˈɪpʃən/","vi":"(n. - danh từ) sự mô tả, bản miêu tả","pos":"noun"},"deserve":{"ipa":"/dɪzˈɜːrv/","vi":"(v. - động từ) xứng đáng","pos":"verb"},"design":{"ipa":"/dɪzˈaɪn/","vi":"(v. - động từ) thiết kế, bản thiết kế","pos":"verb"},"designate":{"ipa":"/dˈezəɡnˌeɪt/","vi":"(v. - động từ) chỉ định, bổ nhiệm","pos":"verb"},"destructive":{"ipa":"/dɪstrˈʌktɪv/","vi":"(adj. - tính từ) mang tính phá hủy, tàn phá","pos":"adj"},"determine":{"ipa":"/dətˈɜːrmən/","vi":"(v. - động từ) xác định, quyết định","pos":"verb"},"develop":{"ipa":"/dɪvˈeləp/","vi":"(v. - động từ) phát triển, xây dựng","pos":"verb"},"development":{"ipa":"/dɪvˈeləpmənt/","vi":"(n. - danh từ) sự phát triển, sự tiến triển","pos":"noun"},"dictate":{"ipa":"/dɪktˈeɪt/","vi":"(v. - động từ) đọc cho viết, ra lệnh","pos":"verb"},"dictator":{"ipa":"/dɪktˈeɪtər/","vi":"(n. - danh từ) kẻ độc tài","pos":"noun"},"dictionary":{"ipa":"/dˈɪkʃənˌeriː/","vi":"(n. - danh từ) từ điển","pos":"noun"},"direct":{"ipa":"/dərˈekt/","vi":"(adj. - tính từ) trực tiếp; chỉ đạo, hướng dẫn","pos":"adj"},"direction":{"ipa":"/dərˈekʃən/","vi":"(n. - danh từ) phương hướng, sự chỉ dẫn","pos":"noun"},"disadvantage":{"ipa":"/dˌɪsədvˈæntɪdʒ/","vi":"(n. - danh từ) bất lợi, nhược điểm","pos":"noun"},"discover":{"ipa":"/dɪskˈʌvər/","vi":"(v. - động từ) khám phá, phát hiện","pos":"verb"},"discovery":{"ipa":"/dɪskˈʌvəriː/","vi":"(n. - danh từ) sự khám phá, phát hiện mới","pos":"noun"},"discuss":{"ipa":"/dɪskˈʌs/","vi":"(v. - động từ) thảo luận, bàn luận","pos":"verb"},"discussion":{"ipa":"/dɪskˈʌʃən/","vi":"(n. - danh từ) cuộc thảo luận","pos":"noun"},"disrupt":{"ipa":"/dɪsrˈʌpt/","vi":"(v. - động từ) phá vỡ, làm gián đoạn","pos":"verb"},"distract":{"ipa":"/dɪstrˈækt/","vi":"(v. - động từ) làm xao nhãng, phân tâm","pos":"verb"},"diverse":{"ipa":"/daɪvˈɜːrs/","vi":"(adj. - tính từ) đa dạng, phong phú","pos":"adj"},"economic":{"ipa":"/ˌekənˈɑːmɪk/","vi":"(adj. - tính từ) thuộc về kinh tế","pos":"adj"},"economy":{"ipa":"/ɪkˈɑːnəmiː/","vi":"(n. - danh từ) nền kinh tế, sự tiết kiệm","pos":"noun"},"educate":{"ipa":"/ˈedʒəkˌeɪt/","vi":"(v. - động từ) giáo dục, đào tạo","pos":"verb"},"education":{"ipa":"/ˌedʒəkˈeɪʃən/","vi":"(n. - danh từ) nền giáo dục, sự đào tạo","pos":"noun"},"effect":{"ipa":"/ɪfˈekt/","vi":"(n. - danh từ) hiệu ứng, tác động, kết quả","pos":"noun"},"effective":{"ipa":"/ɪfˈektɪv/","vi":"(adj. - tính từ) có hiệu quả, hữu hiệu","pos":"adj"},"efficiency":{"ipa":"/ɪfˈɪʃənsiː/","vi":"(n. - danh từ) hiệu suất, sự hiệu quả","pos":"noun"},"efficient":{"ipa":"/ɪfˈɪʃənt/","vi":"(adj. - tính từ) hiệu quả, năng suất cao","pos":"adj"},"emotion":{"ipa":"/ɪmˈoʊʃən/","vi":"(n. - danh từ) cảm xúc","pos":"noun"},"emotional":{"ipa":"/ɪmˈoʊʃənəl/","vi":"(adj. - tính từ) thuộc cảm xúc, xúc động","pos":"adj"},"energy":{"ipa":"/ˈenərdʒiː/","vi":"(n. - danh từ) năng lượng, sinh lực","pos":"noun"},"engineer":{"ipa":"/ˈendʒənˈɪr/","vi":"(n. - danh từ) kỹ sư; thiết kế kỹ thuật","pos":"noun"},"environment":{"ipa":"/ɪnvˈaɪrənmənt/","vi":"(n. - danh từ) môi trường, hoàn cảnh","pos":"noun"},"environmental":{"ipa":"/ɪnvˌaɪrənmˈentəl/","vi":"(adj. - tính từ) thuộc về môi trường","pos":"adj"},"erupt":{"ipa":"/ɪrˈʌpt/","vi":"(v. - động từ) phun trào, bùng nổ","pos":"verb"},"essential":{"ipa":"/ɪsˈenʃəl/","vi":"(adj. - tính từ) thiết yếu, cốt lõi","pos":"adj"},"establish":{"ipa":"/ɪstˈæblɪʃ/","vi":"(v. - động từ) thành lập, thiết lập","pos":"verb"},"estimate":{"ipa":"/ˈestəmət/","vi":"(v. - động từ) ước tính, ước lượng","pos":"verb"},"evacuate":{"ipa":"/ɪvˈækjəˌeɪt/","vi":"(v. - động từ) sơ tán, làm trống","pos":"verb"},"evaluate":{"ipa":"/ɪvˈæljuːˌeɪt/","vi":"(v. - động từ) đánh giá, định giá","pos":"verb"},"evaluation":{"ipa":"/ɪvˌæljuːˈeɪʃən/","vi":"(n. - danh từ) sự đánh giá","pos":"noun"},"evidence":{"ipa":"/ˈevədəns/","vi":"(n. - danh từ) bằng chứng, chứng cứ","pos":"noun"},"evolution":{"ipa":"/ˌevəlˈuːʃən/","vi":"(n. - danh từ) sự tiến hóa, sự phát triển","pos":"noun"},"evolve":{"ipa":"/ɪvˈɑːlv/","vi":"(v. - động từ) tiến hóa, phát triển","pos":"verb"},"examination":{"ipa":"/ɪɡzˌæmənˈeɪʃən/","vi":"(n. - danh từ) kỳ thi, sự kiểm tra","pos":"noun"},"examine":{"ipa":"/ɪɡzˈæmɪn/","vi":"(v. - động từ) kiểm tra, khảo sát, khám","pos":"verb"},"example":{"ipa":"/ɪɡzˈæmpəl/","vi":"(n. - danh từ) ví dụ, tấm gương","pos":"noun"},"exclude":{"ipa":"/ɪksklˈuːd/","vi":"(v. - động từ) loại trừ, ngăn chặn","pos":"verb"},"expand":{"ipa":"/ɪkspˈænd/","vi":"(v. - động từ) mở rộng, trải rộng","pos":"verb"},"expansion":{"ipa":"/ɪkspˈænʃən/","vi":"(n. - danh từ) sự mở rộng, sự bành trướng","pos":"noun"},"expel":{"ipa":"/ɪkspˈel/","vi":"(v. - động từ) trục xuất, đuổi học","pos":"verb"},"experience":{"ipa":"/ɪkspˈɪriːəns/","vi":"(n. - danh từ) kinh nghiệm, trải nghiệm","pos":"noun"},"experiment":{"ipa":"/ɪkspˈerəmənt/","vi":"(n. - danh từ) thí nghiệm, thử nghiệm","pos":"noun"},"expert":{"ipa":"/ˈekspərt/","vi":"(n. - danh từ) chuyên gia; thành thạo","pos":"noun"},"expertise":{"ipa":"/ˌekspərtˈiːz/","vi":"(n. - danh từ) chuyên môn, sự tinh thông","pos":"noun"},"explain":{"ipa":"/ɪksplˈeɪn/","vi":"(v. - động từ) giải thích, lý giải","pos":"verb"},"explanation":{"ipa":"/ˌeksplənˈeɪʃən/","vi":"(n. - danh từ) lời giải thích","pos":"noun"},"export":{"ipa":"/ˈekspɔːrt/","vi":"(v. - động từ) xuất khẩu, kết xuất","pos":"verb"},"expose":{"ipa":"/ɪkspˈoʊz/","vi":"(v. - động từ) phơi bày, tiếp xúc","pos":"verb"},"express":{"ipa":"/ɪksprˈes/","vi":"(v. - động từ) bày tỏ, diễn đạt; tốc hành","pos":"verb"},"expression":{"ipa":"/ɪksprˈeʃən/","vi":"(n. - danh từ) sự biểu đạt, biểu thức","pos":"noun"},"extend":{"ipa":"/ɪkstˈend/","vi":"(v. - động từ) kéo dài, mở rộng","pos":"verb"},"extension":{"ipa":"/ɪkstˈenʃən/","vi":"(n. - danh từ) sự mở rộng, phần mở rộng","pos":"noun"},"extract":{"ipa":"/ɪkstrˈækt/","vi":"(v. - động từ) trích xuất, rút ra","pos":"verb"},"extraction":{"ipa":"/ɪkstrˈækʃən/","vi":"(n. - danh từ) sự trích xuất, khai thác","pos":"noun"},"factor":{"ipa":"/fˈæktər/","vi":"(n. - danh từ) nhân tố, yếu tố","pos":"noun"},"fail":{"ipa":"/feɪl/","vi":"(v. - động từ) thất bại, trượt","pos":"verb"},"failure":{"ipa":"/fˈeɪljər/","vi":"(n. - danh từ) sự thất bại, sự cố","pos":"noun"},"fascinate":{"ipa":"/fˈæsənˌeɪt/","vi":"(v. - động từ) làm mê hoặc, cuốn hút","pos":"verb"},"fascinating":{"ipa":"/fˈæsənˌeɪtɪŋ/","vi":"(adj. - tính từ) hấp dẫn, lôi cuốn, thú vị","pos":"adj"},"feature":{"ipa":"/fˈiːtʃər/","vi":"(n. - danh từ) đặc điểm, tính năng","pos":"noun"},"fetch":{"ipa":"/fetʃ/","vi":"(v. - động từ) tải về, lấy dữ liệu","pos":"verb"},"finance":{"ipa":"/fənˈæns/","vi":"(n. - danh từ) tài chính; cấp vốn","pos":"noun"},"financial":{"ipa":"/fənˈænʃəl/","vi":"(adj. - tính từ) thuộc tài chính","pos":"adj"},"flashcard":{"ipa":"/flˈæʃkɑːrd/","vi":"(n. - danh từ) thẻ ghi nhớ từ vựng (flashcard)","pos":"noun"},"format":{"ipa":"/fˈɔːrmæt/","vi":"(v. - động từ) định dạng, bố cục","pos":"verb"},"formatted":{"ipa":"/fɔːrmatted/","vi":"(adj. - tính từ) được định dạng chuẩn","pos":"adj"},"foundation":{"ipa":"/faʊndˈeɪʃən/","vi":"(n. - danh từ) nền tảng, sự thành lập","pos":"noun"},"frequency":{"ipa":"/frˈiːkwənsiː/","vi":"(n. - danh từ) tần suất, tần số","pos":"noun"},"frequent":{"ipa":"/frˈiːkwənt/","vi":"(adj. - tính từ) thường xuyên","pos":"adj"},"fundamental":{"ipa":"/fˌʌndəmˈentəl/","vi":"(adj. - tính từ) cơ bản, nền tảng","pos":"adj"},"future":{"ipa":"/fjˈuːtʃər/","vi":"(n. - danh từ) tương lai","pos":"noun"},"generate":{"ipa":"/dʒˈenərˌeɪt/","vi":"(v. - động từ) tạo ra, phát sinh","pos":"verb"},"generation":{"ipa":"/dʒˌenərˈeɪʃən/","vi":"(n. - danh từ) sự tạo ra; thế hệ","pos":"noun"},"genetic":{"ipa":"/dʒənˈetɪk/","vi":"(adj. - tính từ) thuộc di truyền","pos":"adj"},"global":{"ipa":"/ɡlˈoʊbəl/","vi":"(adj. - tính từ) toàn cầu, trên toàn thế giới","pos":"adj"},"globalization":{"ipa":"/ɡlˌoʊbəlɪzˈeɪʃən/","vi":"(n. - danh từ) toàn cầu hóa","pos":"noun"},"government":{"ipa":"/ɡˈʌvərmənt/","vi":"(n. - danh từ) chính phủ, chính quyền","pos":"noun"},"gradual":{"ipa":"/ɡrˈædʒuːəl/","vi":"(adj. - tính từ) dần dần, tuần tự","pos":"adj"},"grammar":{"ipa":"/ɡrˈæmər/","vi":"(n. - danh từ) ngữ pháp","pos":"noun"},"graph":{"ipa":"/ɡræf/","vi":"(n. - danh từ) đồ thị, biểu đồ mạng lưới","pos":"noun"},"guidance":{"ipa":"/ɡˈaɪdəns/","vi":"(n. - danh từ) sự hướng dẫn, chỉ đạo","pos":"noun"},"guide":{"ipa":"/ɡaɪd/","vi":"(v. - động từ) hướng dẫn; người dẫn đường","pos":"verb"},"health":{"ipa":"/helθ/","vi":"(n. - danh từ) sức khỏe, y tế","pos":"noun"},"healthy":{"ipa":"/hˈelθiː/","vi":"(adj. - tính từ) khỏe mạnh, lành mạnh","pos":"adj"},"help":{"ipa":"/help/","vi":"(v. - động từ) giúp đỡ, hỗ trợ","pos":"verb"},"high":{"ipa":"/haɪ/","vi":"(adj. - tính từ) cao, ở mức độ cao","pos":"adj"},"historical":{"ipa":"/hɪstˈɔːrɪkəl/","vi":"(adj. - tính từ) thuộc lịch sử, có tính lịch sử","pos":"adj"},"history":{"ipa":"/hˈɪstəriː/","vi":"(n. - danh từ) lịch sử","pos":"noun"},"illustrate":{"ipa":"/ˈɪləstrˌeɪt/","vi":"(v. - động từ) minh họa, làm rõ","pos":"verb"},"illustration":{"ipa":"/ˌɪləstrˈeɪʃən/","vi":"(n. - danh từ) hình minh họa, sự minh họa","pos":"noun"},"impact":{"ipa":"/ɪmpˈækt/","vi":"(n. - danh từ) tác động, ảnh hưởng mạnh","pos":"noun"},"import":{"ipa":"/ɪmpˈɔːrt/","vi":"(v. - động từ) nhập khẩu, nhập dữ liệu","pos":"verb"},"importance":{"ipa":"/ɪmpˈɔːrtəns/","vi":"(n. - danh từ) tầm quan trọng","pos":"noun"},"important":{"ipa":"/ɪmpˈɔːrtənt/","vi":"(adj. - tính từ) quan trọng","pos":"adj"},"impose":{"ipa":"/ɪmpˈoʊz/","vi":"(v. - động từ) áp đặt, đánh thuế","pos":"verb"},"impress":{"ipa":"/ɪmprˈes/","vi":"(v. - động từ) gây ấn tượng","pos":"verb"},"impression":{"ipa":"/ɪmprˈeʃən/","vi":"(n. - danh từ) ấn tượng","pos":"noun"},"improve":{"ipa":"/ɪmprˈuːv/","vi":"(v. - động từ) cải thiện, nâng cao","pos":"verb"},"improvement":{"ipa":"/ɪmprˈuːvmənt/","vi":"(n. - danh từ) sự cải thiện, sự tiến bộ","pos":"noun"},"include":{"ipa":"/ɪnklˈuːd/","vi":"(v. - động từ) bao gồm, tính cả","pos":"verb"},"increase":{"ipa":"/ɪnkrˈiːs/","vi":"(v. - động từ) tăng lên; sự gia tăng","pos":"verb"},"incredible":{"ipa":"/ɪnkrˈedəbəl/","vi":"(adj. - tính từ) đáng kinh ngạc, khó tin","pos":"adj"},"individual":{"ipa":"/ˌɪndəvˈɪdʒəwəl/","vi":"(n. - danh từ) cá nhân, riêng lẻ","pos":"noun"},"industrial":{"ipa":"/ɪndˈʌstriːəl/","vi":"(adj. - tính từ) thuộc công nghiệp","pos":"adj"},"industry":{"ipa":"/ˈɪndəstriː/","vi":"(n. - danh từ) ngành công nghiệp, sự cần cù","pos":"noun"},"influence":{"ipa":"/ˈɪnfluːəns/","vi":"(n. - danh từ) ảnh hưởng, sức ảnh hưởng","pos":"noun"},"infrastructure":{"ipa":"/ˌɪnfrəstrˈʌktʃər/","vi":"(n. - danh từ) cơ sở hạ tầng","pos":"noun"},"inject":{"ipa":"/ɪndʒˈekt/","vi":"(v. - động từ) tiêm vào, bơm vào","pos":"verb"},"innovate":{"ipa":"/ˈɪnəvˌeɪt/","vi":"(v. - động từ) đổi mới, sáng tạo","pos":"verb"},"innovation":{"ipa":"/ˌɪnəvˈeɪʃən/","vi":"(n. - danh từ) sự đổi mới, sáng kiến","pos":"noun"},"innovative":{"ipa":"/ˈɪnəvˌeɪtɪv/","vi":"(adj. - tính từ) mang tính đổi mới, sáng tạo","pos":"adj"},"insist":{"ipa":"/ɪnsˈɪst/","vi":"(v. - động từ) khăng khăng, kiên quyết","pos":"verb"},"inspect":{"ipa":"/ɪnspˈekt/","vi":"(v. - động từ) kiểm tra, thanh tra, xem xét kỹ","pos":"verb"},"inspection":{"ipa":"/ɪnspˈekʃən/","vi":"(n. - danh từ) sự kiểm tra, sự thanh tra","pos":"noun"},"institution":{"ipa":"/ˌɪnstɪtˈuːʃən/","vi":"(n. - danh từ) tổ chức, viện, thể chế","pos":"noun"},"instruction":{"ipa":"/ɪnstrˈʌkʃən/","vi":"(n. - danh từ) hướng dẫn, chỉ dẫn","pos":"noun"},"intellectual":{"ipa":"/ˌɪntəlˈektʃuːəl/","vi":"(adj. - tính từ) thuộc trí tuệ; người trí thức","pos":"adj"},"intelligence":{"ipa":"/ɪntˈelədʒəns/","vi":"(n. - danh từ) trí tuệ, sự thông minh, tình báo","pos":"noun"},"intelligent":{"ipa":"/ɪntˈelədʒənt/","vi":"(adj. - tính từ) thông minh, sáng dạ","pos":"adj"},"interact":{"ipa":"/ˌɪntərˈækt/","vi":"(v. - động từ) tương tác, tác động qua lại","pos":"verb"},"interaction":{"ipa":"/ˌɪntərˈækʃən/","vi":"(n. - danh từ) sự tương tác","pos":"noun"},"interactive":{"ipa":"/ˌɪntərˈæktɪv/","vi":"(adj. - tính từ) có tính tương tác","pos":"adj"},"international":{"ipa":"/ˌɪntərnˈæʃənəl/","vi":"(adj. - tính từ) quốc tế, đa quốc gia","pos":"adj"},"interpret":{"ipa":"/ɪntˈɜːrprət/","vi":"(v. - động từ) diễn giải, thông dịch","pos":"verb"},"interpretation":{"ipa":"/ɪntˌɜːrprɪtˈeɪʃən/","vi":"(n. - danh từ) sự diễn giải, cách hiểu","pos":"noun"},"interrupt":{"ipa":"/ˌɪntərˈʌpt/","vi":"(v. - động từ) làm gián đoạn, ngắt lời","pos":"verb"},"interval":{"ipa":"/ˈɪntərvəl/","vi":"(n. - danh từ) khoảng thời gian, khoảng cách","pos":"noun"},"introduce":{"ipa":"/ˌɪntrədˈuːs/","vi":"(v. - động từ) giới thiệu, đưa vào","pos":"verb"},"introduction":{"ipa":"/ˌɪntrədˈʌkʃən/","vi":"(n. - danh từ) sự giới thiệu, lời mở đầu","pos":"noun"},"invent":{"ipa":"/ɪnvˈent/","vi":"(v. - động từ) phát minh, sáng chế","pos":"verb"},"invention":{"ipa":"/ɪnvˈenʃən/","vi":"(n. - danh từ) phát minh, sự sáng chế","pos":"noun"},"invert":{"ipa":"/ɪnvˈɜːrt/","vi":"(v. - động từ) đảo ngược, lật ngược","pos":"verb"},"invest":{"ipa":"/ɪnvˈest/","vi":"(v. - động từ) đầu tư","pos":"verb"},"investment":{"ipa":"/ɪnvˈestmənt/","vi":"(n. - danh từ) sự đầu tư, khoản đầu tư","pos":"noun"},"involve":{"ipa":"/ɪnvˈɑːlv/","vi":"(v. - động từ) bao gồm, liên quan, thu hút","pos":"verb"},"issue":{"ipa":"/ˈɪʃuː/","vi":"(n. - danh từ) vấn đề, số phát hành","pos":"noun"},"knowledge":{"ipa":"/nˈɑːlədʒ/","vi":"(n. - danh từ) kiến thức, tri thức","pos":"noun"},"language":{"ipa":"/lˈæŋɡwədʒ/","vi":"(n. - danh từ) ngôn ngữ","pos":"noun"},"lecture":{"ipa":"/lˈektʃər/","vi":"(n. - danh từ) bài giảng, buổi thuyết giảng","pos":"noun"},"lemma":{"ipa":"/lˈemə/","vi":"(n. - danh từ) từ gốc nguyên mẫu (lemma)","pos":"noun"},"literature":{"ipa":"/lˈɪtərətʃər/","vi":"(n. - danh từ) văn học, tài liệu chuyên ngành","pos":"noun"},"logic":{"ipa":"/lˈɑːdʒɪk/","vi":"(n. - danh từ) logic, sự suy luận hợp lý","pos":"noun"},"logical":{"ipa":"/lˈɑːdʒɪkəl/","vi":"(adj. - tính từ) hợp lý, có tính logic","pos":"adj"},"maintain":{"ipa":"/meɪntˈeɪn/","vi":"(v. - động từ) duy trì, bảo trì","pos":"verb"},"maintenance":{"ipa":"/mˈeɪntənəns/","vi":"(n. - danh từ) sự bảo trì, sự duy trì","pos":"noun"},"manage":{"ipa":"/mˈænədʒ/","vi":"(v. - động từ) quản lý, xoay xở","pos":"verb"},"management":{"ipa":"/mˈænədʒmənt/","vi":"(n. - danh từ) sự quản lý, ban quản trị","pos":"noun"},"manuscript":{"ipa":"/mˈænjəskrˌɪpt/","vi":"(n. - danh từ) bản thảo viết tay","pos":"noun"},"market":{"ipa":"/mˈɑːrkət/","vi":"(n. - danh từ) thị trường, chợ","pos":"noun"},"meaning":{"ipa":"/mˈiːnɪŋ/","vi":"(n. - danh từ) ý nghĩa, nghĩa từ vựng","pos":"noun"},"measure":{"ipa":"/mˈeʒər/","vi":"(v. - động từ) đo lường; biện pháp","pos":"verb"},"measurement":{"ipa":"/mˈeʒərmənt/","vi":"(n. - danh từ) sự đo lường, kích thước","pos":"noun"},"medical":{"ipa":"/mˈedəkəl/","vi":"(adj. - tính từ) thuộc y khoa, y tế","pos":"adj"},"medicine":{"ipa":"/mˈedəsən/","vi":"(n. - danh từ) thuốc, y học","pos":"noun"},"memorize":{"ipa":"/mˈemərˌaɪz/","vi":"(v. - động từ) ghi nhớ, học thuộc lòng","pos":"verb"},"memory":{"ipa":"/mˈeməriː/","vi":"(n. - danh từ) trí nhớ, bộ nhớ","pos":"noun"},"mental":{"ipa":"/mˈentəl/","vi":"(adj. - tính từ) thuộc tinh thần, tâm thần","pos":"adj"},"method":{"ipa":"/mˈeθəd/","vi":"(n. - danh từ) phương pháp, cách thức","pos":"noun"},"methodology":{"ipa":"/mˌeθədˈɑːlədʒiː/","vi":"(n. - danh từ) phương pháp luận","pos":"noun"},"microscope":{"ipa":"/mˈaɪkrəskˌoʊp/","vi":"(n. - danh từ) kính hiển vi","pos":"noun"},"modern":{"ipa":"/mˈɑːdərn/","vi":"(adj. - tính từ) hiện đại, tân tiến","pos":"adj"},"morphology":{"ipa":"/mɔːrfˈɑːlədʒiː/","vi":"(n. - danh từ) hình thái học (cấu tạo từ)","pos":"noun"},"motivate":{"ipa":"/mˈoʊtəvˌeɪt/","vi":"(v. - động từ) tạo động lực, thúc đẩy","pos":"verb"},"motivation":{"ipa":"/mˌoʊtəvˈeɪʃən/","vi":"(n. - danh từ) động lực","pos":"noun"},"natural":{"ipa":"/nˈætʃərəl/","vi":"(adj. - tính từ) tự nhiên, thiên nhiên","pos":"adj"},"nature":{"ipa":"/nˈeɪtʃər/","vi":"(n. - danh từ) tự nhiên, bản chất","pos":"noun"},"necessary":{"ipa":"/nˈesəsˌeriː/","vi":"(adj. - tính từ) cần thiết","pos":"adj"},"negative":{"ipa":"/nˈeɡətɪv/","vi":"(adj. - tính từ) tiêu cực, phủ định","pos":"adj"},"network":{"ipa":"/nˈetwɜːrk/","vi":"(n. - danh từ) mạng lưới, hệ thống kết nối","pos":"noun"},"neutral":{"ipa":"/nˈuːtrəl/","vi":"(adj. - tính từ) trung lập, trung tính","pos":"adj"},"object":{"ipa":"/ˈɑːbdʒekt/","vi":"(n. - danh từ) vật thể, đối tượng; phản đối","pos":"noun"},"objective":{"ipa":"/əbdʒˈektɪv/","vi":"(n. - danh từ) mục tiêu; khách quan","pos":"noun"},"observation":{"ipa":"/ˌɑːbzərvˈeɪʃən/","vi":"(n. - danh từ) sự quan sát, nhận xét","pos":"noun"},"observe":{"ipa":"/əbzˈɜːrv/","vi":"(v. - động từ) quan sát, tuân thủ","pos":"verb"},"obtain":{"ipa":"/əbtˈeɪn/","vi":"(v. - động từ) đạt được, giành được","pos":"verb"},"obvious":{"ipa":"/ˈɑːbviːəs/","vi":"(adj. - tính từ) rõ ràng, hiển nhiên","pos":"adj"},"offline":{"ipa":"/offline/","vi":"(adj. - tính từ) ngoại tuyến (không cần mạng)","pos":"adj"},"online":{"ipa":"/ˈɔːnlaɪn/","vi":"(adj. - tính từ) trực tuyến (có kết nối mạng)","pos":"adj"},"opportunity":{"ipa":"/ˌɑːpərtˈuːnətiː/","vi":"(n. - danh từ) cơ hội, thời cơ","pos":"noun"},"optimization":{"ipa":"/ɑːptəməzˈeɪʃən/","vi":"(n. - danh từ) sự tối ưu hóa","pos":"noun"},"optimize":{"ipa":"/ˈɑːptəmˌaɪz/","vi":"(v. - động từ) tối ưu hóa","pos":"verb"},"optimized":{"ipa":"/optimized/","vi":"(adj. - tính từ) được tối ưu hóa","pos":"adj"},"option":{"ipa":"/ˈɑːpʃən/","vi":"(n. - danh từ) tùy chọn, sự lựa chọn","pos":"noun"},"organization":{"ipa":"/ˌɔːrɡənəzˈeɪʃən/","vi":"(n. - danh từ) tổ chức, cơ quan","pos":"noun"},"organize":{"ipa":"/ˈɔːrɡənˌaɪz/","vi":"(v. - động từ) tổ chức, sắp xếp","pos":"verb"},"output":{"ipa":"/ˈaʊtpʊt/","vi":"(n. - danh từ) đầu ra, kết quả xuất","pos":"noun"},"overcome":{"ipa":"/ˈoʊvərkˌʌm/","vi":"(v. - động từ) vượt qua, chiến thắng","pos":"verb"},"perceive":{"ipa":"/pərsˈiːv/","vi":"(v. - động từ) nhận thức, cảm nhận","pos":"verb"},"perception":{"ipa":"/pərsˈepʃən/","vi":"(n. - danh từ) sự nhận thức, tri giác","pos":"noun"},"perfectly":{"ipa":"/pˈɜːrfəktliː/","vi":"(adv. - trạng từ) một cách hoàn hảo, trọn vẹn","pos":"adv"},"performance":{"ipa":"/pərfˈɔːrməns/","vi":"(n. - danh từ) hiệu năng, hiệu suất, sự thể hiện","pos":"noun"},"permanent":{"ipa":"/pˈɜːrmənənt/","vi":"(adj. - tính từ) vĩnh viễn, lâu dài","pos":"adj"},"permission":{"ipa":"/pərmˈɪʃən/","vi":"(n. - danh từ) sự cho phép, quyền truy cập","pos":"noun"},"permit":{"ipa":"/pərmˈɪt/","vi":"(v. - động từ) cho phép; giấy phép","pos":"verb"},"persist":{"ipa":"/pərsˈɪst/","vi":"(v. - động từ) kiên trì, bền bỉ, tồn tại dai dẳng","pos":"verb"},"persistent":{"ipa":"/pərsˈɪstənt/","vi":"(adj. - tính từ) kiên trì, bền vững, lưu trữ lâu dài","pos":"adj"},"perspective":{"ipa":"/pərspˈektɪv/","vi":"(n. - danh từ) góc nhìn, quan điểm, viễn cảnh","pos":"noun"},"philosophy":{"ipa":"/fəlˈɑːsəfiː/","vi":"(n. - danh từ) triết học, triết lý","pos":"noun"},"phonetic":{"ipa":"/fənˈetɪk/","vi":"(adj. - tính từ) thuộc ngữ âm, phiên âm","pos":"adj"},"phonetics":{"ipa":"/fənˈetɪks/","vi":"(n. - danh từ) ngữ âm học, ký hiệu phiên âm","pos":"noun"},"physical":{"ipa":"/fˈɪzɪkəl/","vi":"(adj. - tính từ) thuộc vật lý, thể chất","pos":"adj"},"portable":{"ipa":"/pˈɔːrtəbəl/","vi":"(adj. - tính từ) có thể mang theo, di động","pos":"adj"},"positive":{"ipa":"/pˈɑːzətɪv/","vi":"(adj. - tính từ) tích cực, khả quan","pos":"adj"},"possibility":{"ipa":"/pˌɑːsəbˈɪlətiː/","vi":"(n. - danh từ) khả năng, sự có thể","pos":"noun"},"potential":{"ipa":"/pətˈenʃəl/","vi":"(adj. - tính từ) tiềm năng, tiềm tàng","pos":"adj"},"power":{"ipa":"/pˈaʊər/","vi":"(n. - danh từ) sức mạnh, quyền lực, điện năng","pos":"noun"},"powerful":{"ipa":"/pˈaʊərfəl/","vi":"(adj. - tính từ) mạnh mẽ, hùng mạnh","pos":"adj"},"practical":{"ipa":"/prˈæktəkəl/","vi":"(adj. - tính từ) thực tế, thiết thực","pos":"adj"},"practice":{"ipa":"/prˈæktəs/","vi":"(n. - danh từ) thực hành, luyện tập","pos":"noun"},"precise":{"ipa":"/prɪsˈaɪs/","vi":"(adj. - tính từ) chuẩn xác, tỉ mỉ","pos":"adj"},"precision":{"ipa":"/priːsˈɪʒən/","vi":"(n. - danh từ) độ chính xác cao","pos":"noun"},"predict":{"ipa":"/prɪdˈɪkt/","vi":"(v. - động từ) dự đoán, tiên đoán","pos":"verb"},"prediction":{"ipa":"/priːdˈɪkʃən/","vi":"(n. - danh từ) sự dự đoán, lời tiên tri","pos":"noun"},"prefer":{"ipa":"/prəfˈɜːr/","vi":"(v. - động từ) thích hơn, ưu tiên","pos":"verb"},"preference":{"ipa":"/prˈefərəns/","vi":"(n. - danh từ) sự ưu tiên, sở thích","pos":"noun"},"prefix":{"ipa":"/prˈiːfɪks/","vi":"(n. - danh từ) tiền tố (gốc ghép đầu từ)","pos":"noun"},"prescribe":{"ipa":"/prəskrˈaɪb/","vi":"(v. - động từ) kê đơn, quy định","pos":"verb"},"prescription":{"ipa":"/prəskrˈɪpʃən/","vi":"(n. - danh từ) đơn thuốc, sự quy định","pos":"noun"},"present":{"ipa":"/prˈezənt/","vi":"(n. - danh từ) hiện tại; trình bày; món quà","pos":"noun"},"preserve":{"ipa":"/prəzˈɜːrv/","vi":"(v. - động từ) bảo tồn, giữ gìn","pos":"verb"},"previous":{"ipa":"/prˈiːviːəs/","vi":"(adj. - tính từ) trước đó, tiền nhiệm","pos":"adj"},"principle":{"ipa":"/prˈɪnsəpəl/","vi":"(n. - danh từ) nguyên tắc, nguyên lý","pos":"noun"},"privacy":{"ipa":"/prˈaɪvəsiː/","vi":"(n. - danh từ) quyền riêng tư, sự bảo mật","pos":"noun"},"private":{"ipa":"/prˈaɪvət/","vi":"(adj. - tính từ) riêng tư, cá nhân","pos":"adj"},"probability":{"ipa":"/prˌɑːbəbˈɪlətiː/","vi":"(n. - danh từ) xác suất, khả năng xảy ra","pos":"noun"},"problem":{"ipa":"/prˈɑːbləm/","vi":"(n. - danh từ) vấn đề, bài toán","pos":"noun"},"process":{"ipa":"/prˈɑːses/","vi":"(v. - động từ) xử lý; quy trình, quá trình","pos":"verb"},"produce":{"ipa":"/prədˈuːs/","vi":"(v. - động từ) sản xuất, tạo ra","pos":"verb"},"production":{"ipa":"/prədˈʌkʃən/","vi":"(n. - danh từ) sự sản xuất, sản lượng","pos":"noun"},"professional":{"ipa":"/prəfˈeʃənəl/","vi":"(adj. - tính từ) chuyên nghiệp; chuyên gia","pos":"adj"},"professor":{"ipa":"/prəfˈesər/","vi":"(n. - danh từ) giáo sư","pos":"noun"},"progress":{"ipa":"/prˈɑːɡres/","vi":"(n. - danh từ) sự tiến bộ; tiến triển","pos":"noun"},"project":{"ipa":"/prˈɑːdʒekt/","vi":"(n. - danh từ) dự án; phóng chiếu, dự kiến","pos":"noun"},"promote":{"ipa":"/prəmˈoʊt/","vi":"(v. - động từ) thúc đẩy, thăng chức, quảng bá","pos":"verb"},"pronounce":{"ipa":"/prənˈaʊns/","vi":"(v. - động từ) phát âm","pos":"verb"},"pronunciation":{"ipa":"/proʊnˌʌnsiːˈeɪʃən/","vi":"(n. - danh từ) cách phát âm","pos":"noun"},"propel":{"ipa":"/prəpˈel/","vi":"(v. - động từ) đẩy đi, thúc đẩy","pos":"verb"},"proposal":{"ipa":"/prəpˈoʊzəl/","vi":"(n. - danh từ) bản đề xuất, kiến nghị","pos":"noun"},"propose":{"ipa":"/prəpˈoʊz/","vi":"(v. - động từ) đề xuất, cầu hôn","pos":"verb"},"psychological":{"ipa":"/sˌaɪkəlˈɑːdʒɪkəl/","vi":"(adj. - tính từ) thuộc tâm lý","pos":"adj"},"psychology":{"ipa":"/saɪkˈɑːlədʒiː/","vi":"(n. - danh từ) tâm lý học","pos":"noun"},"public":{"ipa":"/pˈʌblɪk/","vi":"(adj. - tính từ) công cộng, công khai","pos":"adj"},"publication":{"ipa":"/pˌʌblɪkˈeɪʃən/","vi":"(n. - danh từ) ấn phẩm, sự xuất bản","pos":"noun"},"publish":{"ipa":"/pˈʌblɪʃ/","vi":"(v. - động từ) xuất bản, công bố","pos":"verb"},"qualification":{"ipa":"/kwˌɑːləfəkˈeɪʃən/","vi":"(n. - danh từ) bằng cấp, trình độ chuyên môn","pos":"noun"},"qualify":{"ipa":"/kwˈɑːləfˌaɪ/","vi":"(v. - động từ) đủ tư cách, đạt chuẩn","pos":"verb"},"quality":{"ipa":"/kwˈɑːlətiː/","vi":"(n. - danh từ) chất lượng, phẩm chất","pos":"noun"},"quantity":{"ipa":"/kwˈɑːntətiː/","vi":"(n. - danh từ) số lượng, khối lượng","pos":"noun"},"radical":{"ipa":"/rˈædəkəl/","vi":"(n. - danh từ) gốc từ / bộ thủ; triệt để","pos":"noun"},"rapid":{"ipa":"/rˈæpəd/","vi":"(adj. - tính từ) nhanh chóng, mau lẹ","pos":"adj"},"rapidly":{"ipa":"/rˈæpədliː/","vi":"(adv. - trạng từ) một cách nhanh chóng","pos":"adv"},"rational":{"ipa":"/rˈæʃənəl/","vi":"(adj. - tính từ) có lý trí, hợp lý","pos":"adj"},"reason":{"ipa":"/rˈiːzən/","vi":"(n. - danh từ) lý do, lý trí; suy luận","pos":"noun"},"reasonable":{"ipa":"/rˈiːzənəbəl/","vi":"(adj. - tính từ) hợp lý, phải chăng","pos":"adj"},"receive":{"ipa":"/rəsˈiːv/","vi":"(v. - động từ) nhận được, tiếp nhận","pos":"verb"},"recognition":{"ipa":"/rˌekəɡnˈɪʃən/","vi":"(n. - danh từ) sự công nhận, sự nhận diện","pos":"noun"},"recognize":{"ipa":"/rˈekəɡnˌaɪz/","vi":"(v. - động từ) nhận ra, công nhận","pos":"verb"},"reduce":{"ipa":"/rədˈuːs/","vi":"(v. - động từ) giảm bớt, cắt giảm","pos":"verb"},"reduction":{"ipa":"/rədˈʌkʃən/","vi":"(n. - danh từ) sự cắt giảm, sự thu gọn","pos":"noun"},"refer":{"ipa":"/rəfˈɜːr/","vi":"(v. - động từ) tham khảo, ám chỉ, giới thiệu","pos":"verb"},"reference":{"ipa":"/rˈefərəns/","vi":"(n. - danh từ) tài liệu tham khảo, sự nhắc đến","pos":"noun"},"reject":{"ipa":"/rɪdʒˈekt/","vi":"(v. - động từ) từ chối, bác bỏ","pos":"verb"},"relation":{"ipa":"/riːlˈeɪʃən/","vi":"(n. - danh từ) mối quan hệ, sự liên quan","pos":"noun"},"relationship":{"ipa":"/riːlˈeɪʃənʃˌɪp/","vi":"(n. - danh từ) mối quan hệ","pos":"noun"},"relative":{"ipa":"/rˈelətɪv/","vi":"(adj. - tính từ) tương đối; họ hàng","pos":"adj"},"repeat":{"ipa":"/rɪpˈiːt/","vi":"(v. - động từ) lặp lại, nhắc lại","pos":"verb"},"repetition":{"ipa":"/rˌepətˈɪʃən/","vi":"(n. - danh từ) sự lặp lại, ôn tập","pos":"noun"},"require":{"ipa":"/rˌiːkwˈaɪər/","vi":"(v. - động từ) yêu cầu, đòi hỏi","pos":"verb"},"requirement":{"ipa":"/rɪkwˈaɪrmənt/","vi":"(n. - danh từ) yêu cầu, điều kiện cần","pos":"noun"},"research":{"ipa":"/riːsˈɜːrtʃ/","vi":"(n. - danh từ) nghiên cứu, tìm tòi","pos":"noun"},"resist":{"ipa":"/rɪzˈɪst/","vi":"(v. - động từ) kháng cự, chống lại","pos":"verb"},"resource":{"ipa":"/rˈiːsɔːrs/","vi":"(n. - danh từ) tài nguyên, nguồn lực","pos":"noun"},"responsibility":{"ipa":"/riːspˌɑːnsəbˈɪlətiː/","vi":"(n. - danh từ) trách nhiệm, bổn phận","pos":"noun"},"responsible":{"ipa":"/riːspˈɑːnsəbəl/","vi":"(adj. - tính từ) chịu trách nhiệm, có trách nhiệm","pos":"adj"},"result":{"ipa":"/rɪzˈʌlt/","vi":"(n. - danh từ) kết quả; dẫn đến","pos":"noun"},"retain":{"ipa":"/rɪtˈeɪn/","vi":"(v. - động từ) giữ lại, duy trì","pos":"verb"},"retrospect":{"ipa":"/rˈetrəspˌekt/","vi":"(n. - danh từ) sự nhìn lại quá khứ, hồi tưởng","pos":"noun"},"revert":{"ipa":"/rɪvˈɜːrt/","vi":"(v. - động từ) quay trở lại trạng thái cũ","pos":"verb"},"review":{"ipa":"/riːvjˈuː/","vi":"(v. - động từ) ôn tập, đánh giá, xem xét lại","pos":"verb"},"revise":{"ipa":"/rɪvˈaɪz/","vi":"(v. - động từ) ôn tập, chỉnh sửa","pos":"verb"},"revision":{"ipa":"/riːvˈɪʒən/","vi":"(n. - danh từ) sự ôn tập, bản sửa đổi","pos":"noun"},"revive":{"ipa":"/rɪvˈaɪv/","vi":"(v. - động từ) hồi sinh, làm sống lại","pos":"verb"},"revolution":{"ipa":"/rˌevəlˈuːʃən/","vi":"(n. - danh từ) cuộc cách mạng, vòng quay","pos":"noun"},"revolve":{"ipa":"/riːvˈɑːlv/","vi":"(v. - động từ) xoay quanh","pos":"verb"},"root":{"ipa":"/ruːt/","vi":"(n. - danh từ) gốc từ, rễ, nguồn gốc","pos":"noun"},"schedule":{"ipa":"/skˈedʒʊl/","vi":"(n. - danh từ) lịch trình; lên lịch","pos":"noun"},"school":{"ipa":"/skuːl/","vi":"(n. - danh từ) trường học","pos":"noun"},"science":{"ipa":"/sˈaɪəns/","vi":"(n. - danh từ) khoa học","pos":"noun"},"scientific":{"ipa":"/sˌaɪəntˈɪfɪk/","vi":"(adj. - tính từ) thuộc khoa học, có tính khoa học","pos":"adj"},"scientist":{"ipa":"/sˈaɪəntɪst/","vi":"(n. - danh từ) nhà khoa học","pos":"noun"},"secure":{"ipa":"/sɪkjˈʊr/","vi":"(adj. - tính từ) an toàn, bảo đảm","pos":"adj"},"security":{"ipa":"/sɪkjˈʊrətiː/","vi":"(n. - danh từ) an ninh, bảo mật","pos":"noun"},"select":{"ipa":"/səlˈekt/","vi":"(v. - động từ) chọn lựa, tuyển chọn","pos":"verb"},"selection":{"ipa":"/səlˈekʃən/","vi":"(n. - danh từ) sự lựa chọn, tuyển tập","pos":"noun"},"semantic":{"ipa":"/sɪmˈæntɪk/","vi":"(adj. - tính từ) thuộc ngữ nghĩa","pos":"adj"},"sentence":{"ipa":"/sˈentəns/","vi":"(n. - danh từ) câu văn; tuyên án","pos":"noun"},"sequence":{"ipa":"/sˈiːkwəns/","vi":"(n. - danh từ) chuỗi, trình tự","pos":"noun"},"service":{"ipa":"/sˈɜːrvəs/","vi":"(n. - danh từ) dịch vụ, hệ thống phục vụ","pos":"noun"},"significance":{"ipa":"/səɡnˈɪfɪkəns/","vi":"(n. - danh từ) tầm quan trọng, ý nghĩa","pos":"noun"},"significant":{"ipa":"/səɡnˈɪfɪkənt/","vi":"(adj. - tính từ) đáng kể, quan trọng, có ý nghĩa","pos":"adj"},"simple":{"ipa":"/sˈɪmpəl/","vi":"(adj. - tính từ) đơn giản, dễ hiểu","pos":"adj"},"simplify":{"ipa":"/sˈɪmpləfˌaɪ/","vi":"(v. - động từ) đơn giản hóa","pos":"verb"},"skill":{"ipa":"/skɪl/","vi":"(n. - danh từ) kỹ năng","pos":"noun"},"social":{"ipa":"/sˈoʊʃəl/","vi":"(adj. - tính từ) thuộc xã hội, hòa đồng","pos":"adj"},"society":{"ipa":"/səsˈaɪətiː/","vi":"(n. - danh từ) xã hội, cộng đồng","pos":"noun"},"solution":{"ipa":"/səlˈuːʃən/","vi":"(n. - danh từ) giải pháp, lời giải, dung dịch","pos":"noun"},"solve":{"ipa":"/sɑːlv/","vi":"(v. - động từ) giải quyết, tháo gỡ","pos":"verb"},"spaced":{"ipa":"/speɪst/","vi":"(adj. - tính từ) cách quãng, phân bố theo khoảng thời gian","pos":"adj"},"spectator":{"ipa":"/spˈekteɪtər/","vi":"(n. - danh từ) khán giả, người quan sát","pos":"noun"},"strategic":{"ipa":"/strətˈiːdʒɪk/","vi":"(adj. - tính từ) mang tính chiến lược","pos":"adj"},"strategy":{"ipa":"/strˈætədʒiː/","vi":"(n. - danh từ) chiến lược","pos":"noun"},"structure":{"ipa":"/strˈʌktʃər/","vi":"(n. - danh từ) cấu trúc, kết cấu; xây dựng","pos":"noun"},"student":{"ipa":"/stˈuːdənt/","vi":"(n. - danh từ) học sinh, sinh viên","pos":"noun"},"subject":{"ipa":"/səbdʒˈekt/","vi":"(n. - danh từ) chủ đề, môn học; đối tượng","pos":"noun"},"submit":{"ipa":"/səbmˈɪt/","vi":"(v. - động từ) nộp, đệ trình, phục tùng","pos":"verb"},"subscribe":{"ipa":"/səbskrˈaɪb/","vi":"(v. - động từ) đăng ký theo dõi","pos":"verb"},"subscription":{"ipa":"/səbskrˈɪpʃən/","vi":"(n. - danh từ) sự đăng ký, thuê bao","pos":"noun"},"subsequent":{"ipa":"/sˈʌbsəkwənt/","vi":"(adj. - tính từ) tiếp theo, theo sau","pos":"adj"},"subtract":{"ipa":"/səbtrˈækt/","vi":"(v. - động từ) trừ đi, khấu trừ","pos":"verb"},"success":{"ipa":"/səksˈes/","vi":"(n. - danh từ) sự thành công","pos":"noun"},"successful":{"ipa":"/səksˈesfəl/","vi":"(adj. - tính từ) thành công","pos":"adj"},"suffix":{"ipa":"/sˈʌfɪks/","vi":"(n. - danh từ) hậu tố (gốc ghép cuối từ)","pos":"noun"},"support":{"ipa":"/səpˈɔːrt/","vi":"(v. - động từ) hỗ trợ, nâng đỡ","pos":"verb"},"survival":{"ipa":"/sərvˈaɪvəl/","vi":"(n. - danh từ) sự sinh tồn, sự sống sót","pos":"noun"},"survive":{"ipa":"/sərvˈaɪv/","vi":"(v. - động từ) sống sót, tồn tại","pos":"verb"},"sustain":{"ipa":"/səstˈeɪn/","vi":"(v. - động từ) duy trì bền vững, chống đỡ","pos":"verb"},"sustainable":{"ipa":"/səstˈeɪnəbəl/","vi":"(adj. - tính từ) bền vững, thân thiện môi trường","pos":"adj"},"symphony":{"ipa":"/sˈɪmfəniː/","vi":"(n. - danh từ) bản giao hưởng","pos":"noun"},"synchronize":{"ipa":"/sˈɪŋkrənˌaɪz/","vi":"(v. - động từ) đồng bộ hóa","pos":"verb"},"syntax":{"ipa":"/sˈɪntæks/","vi":"(n. - danh từ) cú pháp","pos":"noun"},"system":{"ipa":"/sˈɪstəm/","vi":"(n. - danh từ) hệ thống, chế độ","pos":"noun"},"systematic":{"ipa":"/sˌɪstəmˈætɪk/","vi":"(adj. - tính từ) có hệ thống, bài bản","pos":"adj"},"talent":{"ipa":"/tˈælənt/","vi":"(n. - danh từ) tài năng, năng khiếu","pos":"noun"},"teacher":{"ipa":"/tˈiːtʃər/","vi":"(n. - danh từ) giáo viên","pos":"noun"},"technique":{"ipa":"/teknˈiːk/","vi":"(n. - danh từ) kỹ thuật, phương pháp chuyên môn","pos":"noun"},"technological":{"ipa":"/tˌeknəlˈɑːdʒɪkəl/","vi":"(adj. - tính từ) thuộc về công nghệ","pos":"adj"},"technology":{"ipa":"/teknˈɑːlədʒiː/","vi":"(n. - danh từ) công nghệ, kỹ thuật","pos":"noun"},"telephone":{"ipa":"/tˈeləfˌoʊn/","vi":"(n. - danh từ) điện thoại","pos":"noun"},"telescope":{"ipa":"/tˈeləskˌoʊp/","vi":"(n. - danh từ) kính viễn vọng","pos":"noun"},"temporary":{"ipa":"/tˈempərˌeriː/","vi":"(adj. - tính từ) tạm thời, nhất thời","pos":"adj"},"terminate":{"ipa":"/tˈɜːrmənˌeɪt/","vi":"(v. - động từ) chấm dứt, kết thúc","pos":"verb"},"test":{"ipa":"/test/","vi":"(n. - danh từ) bài kiểm tra; thử nghiệm","pos":"noun"},"theoretical":{"ipa":"/θˌiːərˈetɪkəl/","vi":"(adj. - tính từ) thuộc lý thuyết","pos":"adj"},"theory":{"ipa":"/θˈɪriː/","vi":"(n. - danh từ) lý thuyết, học thuyết","pos":"noun"},"tokenize":{"ipa":"/tokenize/","vi":"(v. - động từ) tách từ (phân đoạn văn bản)","pos":"verb"},"traditional":{"ipa":"/trədˈɪʃənəl/","vi":"(adj. - tính từ) truyền thống","pos":"adj"},"transcript":{"ipa":"/trˈænskrɪpt/","vi":"(n. - danh từ) bản ghi chép, bảng điểm","pos":"noun"},"transfer":{"ipa":"/trænsfˈɜːr/","vi":"(v. - động từ) chuyển giao, di chuyển","pos":"verb"},"transform":{"ipa":"/trænsfˈɔːrm/","vi":"(v. - động từ) biến đổi, chuyển đổi","pos":"verb"},"transformation":{"ipa":"/trˌænsfərmˈeɪʃən/","vi":"(n. - danh từ) sự biến đổi, sự chuyển hóa","pos":"noun"},"transformed":{"ipa":"/trænsfˈɔːrmd/","vi":"(v. - động từ) đã biến đổi, chuyển hóa","pos":"verb"},"translate":{"ipa":"/trænzlˈeɪt/","vi":"(v. - động từ) dịch, chuyển ngữ","pos":"verb"},"translation":{"ipa":"/trænzlˈeɪʃən/","vi":"(n. - danh từ) bản dịch, sự dịch thuật","pos":"noun"},"transmission":{"ipa":"/trænsmˈɪʃən/","vi":"(n. - danh từ) sự truyền dẫn, hộp số","pos":"noun"},"transmit":{"ipa":"/trænzmˈɪt/","vi":"(v. - động từ) truyền tải, phát tín hiệu","pos":"verb"},"transport":{"ipa":"/trænspˈɔːrt/","vi":"(v. - động từ) vận chuyển, chuyên chở; phương tiện giao thông","pos":"verb"},"transportation":{"ipa":"/trˌænspərtˈeɪʃən/","vi":"(n. - danh từ) sự vận chuyển, giao thông vận tải","pos":"noun"},"ubiquitous":{"ipa":"/juːbˈɪkwɪtəs/","vi":"(adj. - tính từ) khắp mọi nơi, phổ biến toàn cầu","pos":"adj"},"understand":{"ipa":"/ˌʌndərstˈænd/","vi":"(v. - động từ) hiểu, nắm bắt","pos":"verb"},"understanding":{"ipa":"/ˌʌndərstˈændɪŋ/","vi":"(n. - danh từ) sự hiểu biết, sự thông cảm","pos":"noun"},"universal":{"ipa":"/jˌuːnəvˈɜːrsəl/","vi":"(adj. - tính từ) phổ quát, toàn cầu","pos":"adj"},"university":{"ipa":"/jˌuːnəvˈɜːrsətiː/","vi":"(n. - danh từ) trường đại học","pos":"noun"},"unpredictable":{"ipa":"/ˌʌnprɪdˈɪktəbəl/","vi":"(adj. - tính từ) không thể đoán trước, thất thường","pos":"adj"},"unpredictably":{"ipa":"/ˌʌnprɪdˈɪktəbliː/","vi":"(adv. - trạng từ) một cách khó đoán, bất ngờ","pos":"adv"},"vacant":{"ipa":"/vˈeɪkənt/","vi":"(adj. - tính từ) trống, bỏ không","pos":"adj"},"verdict":{"ipa":"/vˈɜːrdɪkt/","vi":"(n. - danh từ) phán quyết, lời tuyên án","pos":"noun"},"visible":{"ipa":"/vˈɪzəbəl/","vi":"(adj. - tính từ) có thể nhìn thấy, hữu hình","pos":"adj"},"vision":{"ipa":"/vˈɪʒən/","vi":"(n. - danh từ) tầm nhìn, thị lực","pos":"noun"},"visual":{"ipa":"/vˈɪʒəwəl/","vi":"(adj. - tính từ) thuộc thị giác, trực quan","pos":"adj"},"visualize":{"ipa":"/vˈɪʒwəlˌaɪz/","vi":"(v. - động từ) hình dung, trực quan hóa","pos":"verb"},"vital":{"ipa":"/vˈaɪtəl/","vi":"(adj. - tính từ) thiết yếu, sống còn","pos":"adj"},"vocabulary":{"ipa":"/voʊkˈæbjəlˌeriː/","vi":"(n. - danh từ) từ vựng, vốn từ","pos":"noun"},"vocal":{"ipa":"/vˈoʊkəl/","vi":"(adj. - tính từ) thuộc giọng nói, phát âm","pos":"adj"},"word":{"ipa":"/wɜːrd/","vi":"(n. - danh từ) từ vựng, lời nói","pos":"noun"}},"cmudict_ipa":{"abernathy":"/ˈæbərnˌæθiː/","abio":"/ˈɑːbiːoʊ/","abiola":"/ˌɑːbiːˈoʊlə/","abiomed":"/eɪbˈiːəmed/","abomination":"/əbˌɑːmənˈeɪʃən/","abramovitz":"/əbrˈɑːməvɪts/","abrupt":"/əbrˈʌpt/","abruptly":"/əbrˈʌptliː/","abruptness":"/əbrˈʌptnəs/","abscess":"/ˈæbses/","abstract":"/æbstrˈækt/","abstracted":"/ˈæbstrˌæktɪd/","abstraction":"/æbstrˈækʃən/","abstractions":"/æbstrˈækʃənz/","abstracts":"/ˈæbstrækts/","accede":"/æksˈiːd/","acceded":"/æksˈiːdɪd/","accedes":"/æksˈiːdz/","acceding":"/æksˈiːdɪŋ/","access":"/ˈækses/","accessed":"/ˈæksest/","accessible":"/æksˈesəbəl/","accessing":"/ˈæksˌesɪŋ/","accession":"/əksˈeʃən/","accessories":"/æksˈesəriːz/","accessorize":"/æksˈesərˌaɪz/","accessorized":"/æksˈesərˌaɪzd/","accessory":"/æksˈesəriː/","accival":"/ˈæsɪvˌɑːl/","accountemp":"/əkˈaʊntˌemp/","accountemps":"/əkˈaʊntˌemps/","accouterment":"/əkˈuːtərmənt/","accredit":"/əkrˌedət/","accredited":"/əkrˈedɪtɪd/","accrediting":"/əkrˈedətɪŋ/","aced":"/eɪst/","acquaviva":"/ɑːkwɑːvˈiːvə/","acquiesced":"/ˌækwiːˈest/","acquiescing":"/ˌækwiːˈesɪŋ/","actava":"/ˌæktˈɑːvə/","actavas":"/ˌæktˈɑːvəz/","acted":"/ˈæktəd/","actel":"/ˈæktel/","actigall":"/ˈæktɪɡɔːl/","actin":"/ˈæktən/","acting":"/ˈæktɪŋ/","actinide":"/ˈæktɪnˌaɪd/","actinidia":"/ˌæktɪnˈɪdiːə/","action":"/ˈækʃən/","actionable":"/ˈækʃənəbəl/","actions":"/ˈækʃənz/","activase":"/ˈæktɪvˌeɪz/","activate":"/ˈæktəvˌeɪt/","activated":"/ˈæktəvˌeɪtəd/","activates":"/ˈæktəvˌeɪts/","activating":"/ˈæktəvˌeɪtɪŋ/","activation":"/ˌæktəvˈeɪʃən/","activator":"/ˈæktəvˌeɪtər/","active":"/ˈæktɪv/","actively":"/ˈæktɪvliː/","actives":"/ˈæktɪvz/","activision":"/ˈæktɪvˌɪʒən/","activism":"/ˈæktɪvˌɪzəm/","activist":"/ˈæktəvəst/","activists":"/ˈæktəvəsts/","activities":"/æktˈɪvətiːz/","activity":"/æktˈɪvətiː/","actmedia":"/æktmˈiːdiːə/","actodine":"/ˈæktoʊdˌaɪn/","acton":"/ˈæktən/","actor":"/ˈæktər/","actors":"/ˈæktərz/","actress":"/ˈæktrəs/","actresses":"/ˈæktrəsɪz/","acts":"/ækts/","actual":"/ˈæktʃəwəl/","actuality":"/ˌæktʃəwˈælətiː/","actualize":"/ˈæktʃəwəlˌaɪz/","actually":"/ˈæktʃəwəliː/","actuarial":"/ˌæktʃəwˈeriːəl/","actuaries":"/ˈæktʃəwˌeriːz/","actuary":"/ˈæktʃəwˌeriː/","actuate":"/ˈæktʃuːwˌeɪt/","actuator":"/ˈæktjuːˌeɪtər/","actuators":"/ˈæktjuːˌeɪtərz/","actus":"/ˈæktəs/","addict":"/ədˈɪkt/","addicted":"/ədˈɪktəd/","addicting":"/ədˈɪktɪŋ/","addiction":"/ədˈɪkʃən/","addictions":"/ədˈɪkʃənz/","addictive":"/ədˈɪktɪv/","addicts":"/ədˈɪkts/","adequacy":"/ˈædəkwəsiː/","adequate":"/ˈædəkwət/","adequately":"/ˈædəkwətliː/","advalue":"/ˈædvəlˌuː/","advanced":"/ədvˈænst/","advantageous":"/ˌædvəntˈeɪdʒəs/","advisability":"/ˌædvˌaɪzəbˈɪlɪtiː/","advisable":"/ədvˈaɪzəbəl/","advise":"/ædvˈaɪz/","advised":"/ædvˈaɪzd/","advisedly":"/ædvˈaɪzədliː/","advisement":"/ədvˈaɪzmənt/","adviser":"/ædvˈaɪzər/","advisers":"/ædvˈaɪzərz/","advises":"/ædvˈaɪzɪz/","advising":"/ædvˈaɪzɪŋ/","advisor":"/ædvˈaɪzər/","advisories":"/ədvˈaɪzəriːz/","advisors":"/ædvˈaɪzərz/","advisory":"/ædvˈaɪzəriː/","advocacy":"/ˈædvəkəsiː/","advocate":"/ˈædvəkət/","advocated":"/ˈædvəkˌeɪtəd/","advocates":"/ˈædvəkəts/","advocating":"/ˈædvəkˌeɪtɪŋ/","advocation":"/ˌædvəkˈeɪʃən/","aequitron":"/ˈeɪkwɪtrɑːn/","aerogenosa":"/ˈerədʒənˌoʊsə/","affectation":"/ˌæfektˈeɪʃən/","affected":"/əfˈektəd/","affecting":"/əfˈektɪŋ/","affection":"/əfˈekʃən/","affectionate":"/əfˈekʃənət/","affections":"/əfˈekʃənz/","affective":"/əfˈektɪv/","affectively":"/əfˈektɪvliː/","affects":"/əfˈekts/","affidavit":"/ˌæfədˈeɪvət/","affidavits":"/ˌæfɪdˈeɪvɪts/","aficionado":"/əfˌiːʃjənˈɑːdˌoʊ/","aficionados":"/əfˌɪʃənˈɑːdoʊz/","aftereffect":"/ˈæftərəfˌekt/","aftereffects":"/ˈæftərəfˌekts/","aftermarket":"/ˈæftərmˌɑːrkɪt/","aftermarkets":"/ˈæftərmˌɑːrkɪts/","aftermath":"/ˈæftərmˌæθ/","aftermaths":"/ˈæftərmˌæθs/","agamemnon":"/ˌæɡəmˈemnˌɑːn/","agence":"/ˈædʒəns/","agencies":"/ˈeɪdʒənsiːz/","agency":"/ˈeɪdʒənsiː/","agenda":"/ədʒˈendə/","agendas":"/ədʒˈendəz/","agent":"/ˈeɪdʒənt/","agents":"/ˈeɪdʒənts/","agglutinate":"/əɡlˈuːtɪnˌeɪt/","aggress":"/əɡrˈes/","aggression":"/əɡrˈeʃən/","aggressions":"/əɡrˈeʃənz/","aggressive":"/əɡrˈesɪv/","aggressively":"/əɡrˈesɪvliː/","aggressivity":"/əɡresˈɪvɪtiː/","aggressor":"/əɡrˈesər/","aggressors":"/əɡrˈesərz/","agrigenetics":"/ˌæɡrədʒənˈetɪks/","agrivisor":"/ˈæɡrəvˌaɪzər/","ahranat":"/ərˈɑːnət/","airlock":"/ˈerlɔːk/","airlocks":"/ˈerlɔːks/","airmotive":"/ˌermˈoʊtɪv/","airport":"/ˈerpɔːrt/","airporter":"/ˈerpˌɔːrtər/","airporters":"/ˈerpˌɔːrtərz/","airports":"/ˈerpɔːrts/","ajinomoto":"/ədʒˌɪnəmˈoʊtoʊ/","albion":"/ˈælbiːən/","algeo":"/ˈældʒiːoʊ/","alienate":"/ˈeɪljənˌeɪt/","alienated":"/ˈeɪliːənˌeɪtəd/","alienates":"/ˈeɪliːənˌeɪts/","alienating":"/ˈeɪliːənˌeɪtɪŋ/","alienation":"/ˌeɪliːənˈeɪʃən/","allergen":"/ˈælərdʒən/","allergens":"/ˈælərdʒənz/","alliedsignal":"/ˈælˌaɪdsˈɪɡnəl/","allocate":"/ˈæləkˌeɪt/","allocated":"/ˈæləkˌeɪtɪd/","allocates":"/ˈæləkˌeɪts/","allocating":"/ˈæləkˌeɪtɪŋ/","allocation":"/ˌæləkˈeɪʃən/","allocations":"/ˌæləkˈeɪʃənz/","allocator":"/ˈæləkˌeɪtər/","allocators":"/ˈæləkˌeɪtərz/","allocca":"/ˌælˈɑːkə/","allocco":"/ˌælˈɑːkoʊ/","allograph":"/ˈæləɡrˌæf/","allographs":"/ˈæləɡrˌæfs/","allophone":"/ˈæləfˌoʊn/","allophones":"/ˈæləfˌoʊnz/","allophonic":"/ˌæləfˈɑːnɪk/","allport":"/ˈɔːlpɔːrt/","allspice":"/ˈɔːlspaɪs/","alphonse":"/ælfˈɑːnz/","alphonsine":"/əlfˈɑːnsiːn/","alphonso":"/ælfˈɑːnsoʊ/","altavista":"/ˌɔːltəvˈɪstə/","alterman":"/ˈɔːltərmən/","alternate":"/ˈɔːltərnət/","alternated":"/ˈɔːltərnˌeɪtəd/","alternately":"/ˈɔːltərnətliː/","alternates":"/ˈɔːltərnˌeɪts/","alternating":"/ˈɔːltərnˌeɪtɪŋ/","alternation":"/ˈɔːltərnˌeɪʃən/","alternatives":"/ɔːltˈɜːrnətɪvz/","alternator":"/ˈɔːltərnˌeɪtər/","alvidrez":"/ɑːlvˈiːdrez/","alvis":"/ˈɑːlvɪs/","alvita":"/ɑːlvˈiːtə/","alvite":"/ˈælvaɪt/","ambivalence":"/æmbˈɪvələns/","ambivalent":"/æmbˈɪvələnt/","amerongen":"/ˌæmərˈɔːndʒən/","amfac":"/ˈæmfæk/","amgen":"/ˈæmdʒen/","amphibious":"/æmfˈɪbiːəs/","ampligen":"/ˈæmplɪdʒen/","amplocore":"/ˈæmpləkˌɔːr/","anachronism":"/ənˈækrənˌɪzəm/","anachronisms":"/ənˈækrənˌɪzəmz/","anagram":"/ˈænəɡrˌæm/","analog":"/ˈænəlˌɔːɡ/","analogic":"/ˌænəlˈɑːdʒɪk/","analogies":"/ənˈælədʒiːz/","analogous":"/ənˈæləɡəs/","analogue":"/ˈænəlˌɔːɡ/","analogy":"/ənˈælədʒiː/","anathema":"/ənˈæθəmə/","anatola":"/ɑːnɑːtˈoʊlə/","anatole":"/ˈænətˌoʊl/","anatoli":"/ˌænətˈoʊliː/","anatolia":"/ˌænətˈoʊliːə/","anatolian":"/ˌænətˈoʊliːən/","anatoly":"/ˌænətˈoʊliː/","anatomical":"/ˌænətˈɑːməkəl/","anatomically":"/ˌænətˈɑːməkliː/","anatomist":"/ənˈætəməst/","anatomy":"/ənˈætəmiː/","angiogram":"/ˈændʒiːoʊɡræm/","aninat":"/ˈænɪnæt/","annaud":"/ənˈoʊd/","announced":"/ənˈaʊnst/","antecedent":"/ˌæntˈesədənt/","antecedents":"/ˌæntɪsˈiːdənts/","anthologies":"/ænθˈɑːlədʒiːz/","anthology":"/ænθˈɑːlədʒiː/","anthropology":"/ˌænθrəpˈɑːlədʒiː/","antibiotic":"/ˌæntiːbiːˈɑːtɪk/","antibioticos":"/ˌæntiːbiːˈɑːtɪkoʊs/","antibiotics":"/ˌæntiːbiːˈɑːtɪks/","antifraud":"/ˈæntiːfrˌɑːd/","antigen":"/ˈæntədʒən/","antigens":"/ˈæntɪdʒənz/","antilock":"/ˈæntiːlˈɑːk/","antiphon":"/ˈæntəfˌɑːn/","antiphons":"/ˈæntəfˌɑːnz/","antireformer":"/ˌæntiːrɪfˈɔːrmər/","apart":"/əpˈɑːrt/","apartheid":"/əpˈɑːrtˌaɪt/","apartment":"/əpˈɑːrtmənt/","apartments":"/əpˈɑːrtmənts/","apel":"/ɑːpˈel/","apelike":"/ˈeɪplaɪk/","apologetic":"/əpˌɑːlədʒˈetɪk/","apologies":"/əpˈɑːlədʒiːz/","apologist":"/əpˈɑːlədʒəst/","apologists":"/əpˈɑːlədʒəsts/","apologize":"/əpˈɑːlədʒˌaɪz/","apologized":"/əpˈɑːlədʒˌaɪzd/","apologizes":"/əpˈɑːlədʒˌaɪzɪz/","apologizing":"/əpˈɑːlədʒˌaɪzɪŋ/","apology":"/əpˈɑːlədʒiː/","appel":"/ˈæpəl/","appelbaum":"/ˈæpəlbˌaʊm/","appelhans":"/ˈæpɪlhənz/","appell":"/ˈæpəl/","appellate":"/əpˈelɪt/","appellation":"/ˌæpəlˈeɪʃən/","appellations":"/ˌæpəlˈeɪʃənz/","appelman":"/ˈæpəlmən/","appelt":"/ˈæpɪlt/","applaud":"/əplˈɔːd/","applauded":"/əplˈɔːdəd/","applauding":"/əplˈɔːdɪŋ/","applauds":"/əplˈɔːdz/","applequist":"/ˈæpəlkwɪst/","apportion":"/əpˈɔːrʃən/","apportioned":"/əpˈɔːrʃənd/","apportioning":"/əpˈɔːrʃənɪŋ/","apprenticed":"/əprˈentəst/","approval":"/əprˈuːvəl/","approvals":"/əprˈuːvəlz/","archaeology":"/ˌɑːrkiːˈɑːlədʒiː/","archeology":"/ˌɑːrkiːˈɑːlədʒiː/","archibeque":"/ˈɑːrʃɪbiːk/","archipelago":"/ˌɑːrkəpˈeləɡˌoʊ/","archival":"/ɑːrkˈaɪvəl/","archivist":"/ˈɑːrkəvɪst/","archivists":"/ˈɑːrkəvɪsts/","archrival":"/ˈɑːrtʃrˌaɪvəl/","archrivals":"/ˈɑːrtʃrˌaɪvəlz/","arevalo":"/ɑːreɪvˈɑːloʊ/","argenbright":"/ˈɑːrɡɪnbraɪt/","argent":"/ˈɑːrdʒɪnt/","argenta":"/ˌɑːrdʒˈentə/","argentieri":"/ɑːrdʒentˈɪriː/","argentina":"/ˌɑːrdʒəntˈiːnə/","argentinas":"/ˌɑːrdʒəntˈiːnəz/","argentine":"/ˈɑːrdʒəntˌiːn/","argentines":"/ˈɑːrdʒəntˌiːnz/","argentinian":"/ˌɑːrdʒəntˈɪniːən/","argentinians":"/ˌɑːrdʒəntˈɪniːənz/","argento":"/ˌɑːrdʒˈentoʊ/","arnatt":"/ɑːrnˈæt/","arnaud":"/ɑːrnˈoʊ/","arrival":"/ərˈaɪvəl/","arrivals":"/ərˈaɪvəlz/","artifact":"/ˈɑːrtəfˌækt/","artifacts":"/ˈɑːrtəfˌækts/","artifice":"/ˈɑːrtəfɪs/","artificially":"/ˌɑːrtəfˈɪʃəliː/","artiodactyl":"/ˌɑːrtiːoʊdˈæktəl/","artiodactyls":"/ˌɑːrtiːoʊdˈæktəlz/","arval":"/ˈɑːrvəl/","arvid":"/ˈɑːrvɪd/","arvida":"/ɑːrvˈiːdə/","arvidson":"/ˈɑːrvɪdsən/","ascii":"/ˈæskiː/","ascribe":"/əskrˈaɪb/","ascribed":"/əskrˈaɪbd/","ascribes":"/əskrˈaɪbz/","ashlock":"/ˈæʃlɑːk/","asimov":"/ˈæsɪmɑːv/","aspartame":"/ˈæspərtˌeɪm/","aspect":"/ˈæspekt/","aspects":"/ˈæspekts/","assassinate":"/əsˈæsənˌeɪt/","assassinated":"/əsˈæsənˌeɪtəd/","assign":"/əsˈaɪn/","assigned":"/əsˈaɪnd/","assigning":"/əsˈaɪnɪŋ/","assignment":"/əsˈaɪnmənt/","assignments":"/əsˈaɪnmənts/","assigns":"/əsˈaɪnz/","astringent":"/əstrˈɪndʒənt/","astringents":"/əstrˈɪndʒənts/","astrogeology":"/ˌæstrədʒˌiːˈɑːlədʒiː/","astrologer":"/əstrˈɑːlədʒər/","astrologers":"/əstrˈɑːlədʒərz/","astrological":"/ˌæstrəlˈɑːdʒɪkəl/","astrology":"/əstrˈɑːlədʒiː/","asynchronous":"/ˈeɪsˈɪŋkrənəs/","atavism":"/ˈætəvɪzəm/","atavistic":"/ˈætəvɪstɪk/","attempt":"/ətˈempt/","attempted":"/ətˈemptəd/","attempting":"/ətˈemptɪŋ/","attempts":"/ətˈempts/","attermann":"/ˈætərmən/","attracted":"/ətrˈæktəd/","attracting":"/ətrˈæktɪŋ/","attraction":"/ətrˈækʃən/","attractions":"/ətrˈækʃənz/","attractive":"/ətrˈæktɪv/","attractively":"/ətrˈæktɪvliː/","attracts":"/ətrˈækts/","audacious":"/ɑːdˈeɪʃəs/","audacity":"/ɑːdˈæsətiː/","audas":"/oʊdˈɑːz/","auden":"/ˈɔːdən/","auderburn":"/ˈɔːdərbərn/","audet":"/oʊdˈet/","audette":"/oʊdˈet/","audi":"/ˈɔːdiː/","audia":"/ˈɔːdiːə/","audible":"/ˈɑːdəbəl/","audibles":"/ˈɑːdəbəlz/","audibly":"/ˈɑːdəbliː/","audiences":"/ˈɑːdiːənsəz/","audino":"/ˌɔːdˈiːnoʊ/","audiophile":"/ˌɔːdˈiːoʊfˌiːl/","audiophiles":"/ˌɔːdˈiːoʊfˌiːlz/","audiotape":"/ˈɔːdiːoʊtˌeɪp/","audiotapes":"/ˈɔːdiːoʊtˌeɪps/","audiotex":"/ˈɔːdiːoʊtˌeks/","audiotronic":"/ˌɔːdiːoʊtrˈɑːnɪk/","audiotronics":"/ˌɔːdiːoʊtrˈɑːnɪks/","audiovisual":"/ˌɔːdiːoʊvˈɪʒuːəl/","audiovox":"/ˈɔːdiːoʊvˌɑːks/","audis":"/ˈɔːdɪs/","audit":"/ˈɔːdɪt/","audited":"/ˈɔːdɪtɪd/","auditing":"/ˈɑːdətɪŋ/","audition":"/ɑːdˈɪʃən/","auditioned":"/ˌɔːdˈɪʃənd/","auditioning":"/ɑːdˈɪʃənɪŋ/","auditions":"/ˌɔːdˈɪʃənz/","auditor":"/ˈɔːdɪtər/","auditorium":"/ˌɔːdətˈɔːriːəm/","auditoriums":"/ˌɔːdɪtˈɔːriːəmz/","auditors":"/ˈɑːdətərz/","auditory":"/ˈɔːdɪtˌɔːriː/","audits":"/ˈɑːdəts/","audran":"/ˈɔːdrən/","audrey":"/ˈɔːdriː/","audric":"/ˈɔːdrɪk/","audrie":"/ˈɔːdəriː/","audris":"/oʊdrˈiːs/","audry":"/ˈɔːdriː/","audubon":"/ˈɔːdəbɑːn/","audwin":"/ˈɔːdwɪn/","augenstein":"/ˈaʊɡənstaɪn/","auspice":"/ˈɔːspɪs/","auspices":"/ˈɔːspɪsɪz/","auspicious":"/ɑːspˈɪʃəs/","autofact":"/ˈɔːtoʊfˌækt/","autofacts":"/ˈɔːtoʊfˌækts/","autograph":"/ˈɔːtəɡrˌæf/","autographed":"/ˈɔːtəɡrˌæft/","autographs":"/ˈɔːtəɡrˌæfs/","automobile":"/ˈɔːtəmoʊbˌiːl/","automobiles":"/ˈɔːtəmoʊbˌiːlz/","automobili":"/ˌɔːtoʊmoʊbˈiːliː/","automotive":"/ˌɔːtəmˈoʊtɪv/","automoviles":"/ˌɔːtoʊmoʊvˈiːlez/","autopacific":"/ˌɔːtoʊpəsˈɪfɪk/","autopart":"/ˈɔːtoʊpˌɑːrt/","autoparts":"/ˈɔːtoʊpˌɑːrts/","avalanche":"/ˈævəlˌæntʃ/","avalanches":"/ˈævəlˌæntʃɪz/","avallone":"/ˈævəlˌoʊn/","avalon":"/ˈævəlˌɑːn/","avalos":"/ɑːvˈɑːloʊz/","avid":"/ˈævəd/","avidly":"/ˈævədliː/","avis":"/ˈeɪvɪs/","avitabile":"/ɑːviːtˈɑːbəl/","avital":"/əvˈiːtəl/","avitia":"/ɑːvˈiːʃə/","aviv":"/ɑːvˈiːv/","avocado":"/ˌævəkˈɑːdoʊ/","avocados":"/ˌævəkˈɑːdoʊz/","avocation":"/ˌævəkˈeɪʃən/","avocet":"/ˈævəsˌet/","aygen":"/ˈaɪɡən/","azactam":"/əzˈæktæm/","babbio":"/bˈæbiːoʊ/","backlog":"/bˈæklɑːɡ/","backlogged":"/bˈæklɑːɡd/","backlogs":"/bˈæklɔːɡz/","bacteria":"/bæktˈɪriːə/","bacterial":"/bæktˈɪriːəl/","bacteriology":"/bˌæktɪrˌiːˈɑːlədʒiː/","bacterium":"/bæktˈɪriːəm/","bagent":"/bˈeɪdʒənt/","bagnato":"/bɑːɡnˈɑːtoʊ/","baillargeon":"/bəlˈɑːrdʒɪn/","balanced":"/bˈælənst/","balog":"/bˈælɔːɡ/","baloga":"/bɑːlˈoʊɡə/","balogh":"/bˈæloʊ/","bancserve":"/bˈænksərv/","bankruptcies":"/bˈæŋkrəptsiːz/","bankruptcy":"/bˈæŋkrəpsiː/","bankrupted":"/bˈæŋkrəptɪd/","bankrupting":"/bˈæŋkrˌʌptɪŋ/","barbeque":"/bˈɑːrbɪkjˌuː/","barbequed":"/bˈɑːrbɪkjˌuːd/","barbequeing":"/bˈɑːrbɪkjˌuːɪŋ/","barbeques":"/bˈɑːrbɪkjˌuːz/","batterman":"/bˈætərmən/","baud":"/bɔːd/","baudendistel":"/bˈaʊdɪndɪstəl/","bauder":"/bˈaʊdər/","baudoin":"/boʊdwˈɑːeɪn/","baudouin":"/bɔːdˈuːɪn/","bavis":"/bˈeɪvɪs/","beagen":"/bˈiːɡən/","beaudet":"/boʊdˈet/","beaudette":"/boʊdˈet/","beaudin":"/boʊdˈæn/","beaudoin":"/boʊdˈɔɪn/","beaudreau":"/boʊdrˈoʊ/","beaudry":"/boʊdrˈiː/","beavis":"/bˈiːvəs/","begnaud":"/bɪɡnˈoʊ/","behemoth":"/bəhˈiːməθ/","behemoths":"/bɪhˈiːməθs/","belgrade":"/bˈelɡreɪd/","bellavista":"/bˌeləvˈɪstə/","belvidere":"/bˈelvɪdˌɪr/","benatar":"/bˈenətər/","benavides":"/beɪnɑːvˈiːdes/","benavidez":"/beɪnɑːvˈiːdez/","benedict":"/bˈenədˌɪkt/","benedicta":"/bˈenədiːktə/","benedictine":"/bˌenədˈɪktiːn/","benedictines":"/bˌenədˈɪktiːnz/","benediction":"/bˌenədˈɪkʃən/","benefactor":"/bˈenəfˌæktər/","benefactors":"/bˈenəfˌæktərz/","beneficence":"/bənˈefəsəns/","beneficent":"/bˌenəfˈɪʃənt/","beneficially":"/bˌenəfˈɪʃəliː/","beneficiary":"/bˌenəfˈɪʃiːˌeriː/","benenati":"/bɪnənˈɑːtiː/","benequity":"/bˌenˈekwətiː/","benevides":"/bˈenəviːdes/","beninati":"/beniːnˈɑːtiː/","bequeath":"/bɪkwˈiːθ/","bequeathed":"/bəkwˈiːθt/","bequest":"/bɪkwˈest/","bequests":"/bɪkwˈests/","bequette":"/bɪkˈet/","bergen":"/bˈɜːrɡən/","bergendahl":"/bˈɜːrɡendɑːl/","bergenfield":"/bˈɜːrɡənfˌiːld/","bergenthal":"/bˈɜːrɡənθˌɑːl/","berkovitz":"/bˈɜːrkəvɪts/","bernat":"/bˈɜːrnət/","bernath":"/bˈɜːrnəθ/","bernhagen":"/bˈɜːrnhəɡən/","bespectacle":"/bɪspˈektəkəl/","bespectacled":"/bɪspˈektəkəld/","betterment":"/bˈetərmənt/","bevalaqua":"/bevəlˈɑːkə/","bevis":"/bˈevɪs/","bibliography":"/bˌɪbliːˈɑːɡrəfiː/","bicarbonate":"/baɪkˈɑːrbənət/","biernat":"/bɪrnˈæt/","bigram":"/bˈaɪɡræm/","binational":"/baɪnˈæʃənəl/","bingenheimer":"/bˈɪŋɡɪnhaɪmər/","biochem":"/bˈaɪətʃəm/","biochemical":"/bˌaɪoʊkˈeməkəl/","biochemist":"/bˌaɪoʊkˈeməst/","biochemistry":"/bˌaɪoʊkˈeməstriː/","biocine":"/bˈaɪəsˌiːn/","biocontrol":"/bˌaɪəkˈɑːntrɑːl/","biocraft":"/bˈaɪoʊkrˌæft/","biodiverse":"/bˌaɪoʊdaɪvˈɜːrs/","biodiversity":"/bˌaɪoʊdaɪvˈɜːrsətiː/","bioengineer":"/bˌaɪoʊˌendʒənˈɪr/","bioethics":"/bˌaɪoʊˈeθɪks/","biofeedback":"/baɪoʊfˈiːdbˌæk/","bioflavonoid":"/bˌaɪoʊflˈeɪvənɔɪd/","biogen":"/bˈaɪoʊdʒˌen/","biographer":"/baɪˈɑːɡrəfər/","biographers":"/baɪˈɑːɡrəfərz/","biographical":"/bˌaɪəɡrˈæfɪkəl/","biographies":"/baɪˈɑːɡrəfiːz/","biohazard":"/bˌaɪoʊhˈæzərd/","biohazards":"/bˌaɪoʊhˈæzərdz/","biologic":"/bˌaɪəlˈɑːdʒɪk/","biologically":"/baɪəlˈɑːdʒɪkliː/","biologicals":"/baɪəlˈɑːdʒɪkəlz/","biologics":"/baɪəlˈɑːdʒɪks/","biologist":"/baɪˈɑːlədʒəst/","biologists":"/baɪˈɑːlədʒəsts/","biomass":"/bˈaɪəmæs/","biomaterial":"/bˌaɪoʊmətˈɪriːəl/","biomaterials":"/bˌaɪoʊmətˈɪriːəlz/","biome":"/bˈaɪoʊm/","biomed":"/bˌaɪoʊmˈed/","biomedical":"/bˌaɪoʊmˈedɪkəl/","biomedicals":"/bˌaɪoʊmˈedɪkəlz/","biomes":"/baɪˈoʊmz/","biomet":"/bˈaɪoʊmet/","biondi":"/biːˈɑːndiː/","biondo":"/biːˈoʊndoʊ/","biondolillo":"/biːoʊndoʊlˈɪloʊ/","bionetic":"/bˌaɪoʊnˈetɪk/","bionetics":"/bˌaɪoʊnˈetɪks/","biopharm":"/bˈaɪəfɑːrm/","biopharmacy":"/bˌaɪoʊfˈɑːrməsiː/","biophysics":"/bˌaɪoʊfˈɪsɪks/","biopsies":"/bˈaɪɑːpsiːz/","biopsy":"/bˈaɪɑːpsiː/","bios":"/bˈaɪoʊs/","biosafety":"/bˌaɪoʊsˈeɪftiː/","bioscience":"/bˌaɪoʊsˈiːəns/","biosciences":"/baɪˈɔːsiːˌensɪz/","biosensor":"/bˌaɪoʊsˈensər/","biosensors":"/bˌaɪoʊsˈensərz/","biosis":"/biːˈoʊzɪs/","biosphere":"/bˈaɪoʊsfˌɪr/","biospheres":"/bˈaɪoʊsfˌɪrz/","biospherian":"/bˌaɪoʊsfˈɪriːən/","biospherians":"/bˌaɪoʊsfˈɪriːənz/","biosys":"/bˈaɪoʊsɪs/","biosystem":"/bˈaɪoʊsˌɪstəm/","biosystems":"/bˈaɪoʊsˌɪstəmz/","biotech":"/bˈaɪoʊtˌek/","biotechnica":"/bˌaɪoʊtˈeknɪkə/","biotechs":"/bˈaɪoʊtˌeks/","biotin":"/bˈaɪətən/","biotite":"/bˈaɪətˌaɪt/","biovest":"/bˈaɪoʊvəst/","bipartisan":"/baɪpˈɑːrtɪzən/","bisignano":"/bɪsiːɡnˈɑːnoʊ/","bitterman":"/bˈɪtərmən/","bittermann":"/bˈɪtərmən/","bivalve":"/bˈaɪvælv/","bivalves":"/bˈaɪvælvz/","blacklock":"/blˈæklɑːk/","blalock":"/blˈælɑːk/","blaylock":"/blˈeɪlək/","blegen":"/blˈeɡən/","blelloch":"/blˈelɑːk/","bloc":"/blɑːk/","bloch":"/blɑːk/","blocher":"/blˈɑːkər/","block":"/blɑːk/","blockade":"/blɑːkˈeɪd/","blockaded":"/blˌɑːkˈeɪdɪd/","blockader":"/blˌɑːkˈeɪdər/","blockaders":"/blˌɑːkˈeɪdərz/","blockades":"/blɑːkˈeɪdz/","blockading":"/blˌɑːkˈeɪdɪŋ/","blockage":"/blˈɑːkɪdʒ/","blockages":"/blˈɑːkɪdʒɪz/","blockbuster":"/blˈɑːkbˌʌstər/","blockbusters":"/blˈɑːkbˌʌstərz/","blocked":"/blɑːkt/","blocker":"/blˈɑːkər/","blockers":"/blˈɑːkərz/","blockhead":"/blˈɑːkhed/","blockheads":"/blˈɑːkhedz/","blockhouse":"/blˈɑːkhaʊs/","blockhouses":"/blˈɑːkhˌaʊsəz/","blocking":"/blˈɑːkɪŋ/","blocks":"/blɑːks/","blocs":"/blɑːks/","bludgeon":"/blˈʌdʒən/","bludgeoned":"/blˈʌdʒənd/","bludgeoning":"/blˈʌdʒənɪŋ/","blurb":"/blɜːrb/","blurbs":"/blɜːrbz/","bogen":"/bˈɑːɡən/","bogenschutz":"/bˈɑːɡɪnʃəts/","boldface":"/bˈoʊldfeɪs/","bologna":"/bəlˈoʊniː/","bolognese":"/boʊloʊɡnˈeɪziː/","bolognesi":"/bˌɑːlɑːɡnˈesiː/","bolshevism":"/bˈoʊlʃəvˌɪzəm/","bolshevist":"/bˈoʊlʃɪvˌɪst/","bonaparte":"/bˈoʊnəpˌɑːrt/","bonavita":"/boʊnɑːvˈiːtə/","bonifacio":"/bˌɑːnɪfˈeɪsiːoʊ/","bonsignore":"/boʊnsiːɡnˈɔːriː/","bontempo":"/bˌɑːntˈempoʊ/","bookmobile":"/bˈʊkmoʊbˌiːl/","bookmobiles":"/bˈʊkmoʊbˌiːlz/","borgen":"/bˈɔːrɡən/","borkenhagen":"/bˈɔːrkɪnhˌɑːɡən/","boscia":"/bˈoʊstʃə/","bounced":"/baʊnst/","bourbeau":"/bʊrbˈoʊ/","bourbon":"/bˈɜːrbən/","bourbons":"/bˈɜːrbənz/","bourgeois":"/bʊrʒwˈɑː/","bourgeoisie":"/bˌʊrʒwˌɑːzˈiː/","braced":"/breɪst/","braud":"/brɔːd/","braude":"/brɔːd/","brescia":"/brˈestʃə/","brevity":"/brˈevətiː/","bridgeport":"/brˈɪdʒpɔːrt/","bronchoscope":"/brˈɑːnkəskˈoʊp/","broxterman":"/brˈɑːkstərmən/","brueggen":"/brˈuːɡən/","buddenhagen":"/bˈʌdɪnhəɡən/","bulloch":"/bˈʊlək/","bullock":"/bˈʊlək/","bullocks":"/bˈʊləks/","burba":"/bˈɜːrbə/","burbach":"/bˈɜːrbɑːk/","burback":"/bˈɜːrbæk/","burbage":"/bˈɜːrbɪdʒ/","burbank":"/bˈɜːrbæŋk/","burbidge":"/bˈɜːrbɪdʒ/","burble":"/bˈɜːrbəl/","burbled":"/bˈɜːrbəld/","burbles":"/bˈɜːrbəlz/","burbling":"/bˈɜːrblɪŋ/","burbridge":"/bˈɜːrbrɪdʒ/","burby":"/bˈɜːrbiː/","burgener":"/bˈɜːrɡiːnər/","burgeon":"/bˈɜːrdʒən/","burgeoned":"/bˈɜːrdʒənd/","burgeoning":"/bˈɜːrdʒənɪŋ/","buttermilk":"/bˈʌtərmˌɪlk/","buttermore":"/bˈʌtərmɔːr/","cablegram":"/kˈeɪbəlɡrˌæm/","cablevision":"/kˈeɪbəlvˌɪʒən/","caccavale":"/kɑːkəvˈɑːliː/","cacophony":"/kækˈɑːfəniː/","cacti":"/kˈæktaɪ/","cactus":"/kˈæktəs/","caffeinate":"/kˈæfɪnˌeɪt/","caffeinated":"/kˈæfɪnˌeɪtəd/","caicedo":"/kətʃˈeɪdoʊ/","calgene":"/kˈældʒiːn/","calligrapher":"/kəlˈɪɡrəfər/","calligraphic":"/kˌæləɡrˈæfɪk/","calligraphy":"/kəlˈɪɡrəfiː/","calogero":"/kɑːloʊdʒˈeroʊ/","cambior":"/kˈæmbiːər/","cannata":"/kɑːnˈɑːtə/","capel":"/kˈeɪpəl/","capell":"/kɑːpˈeɪl/","capella":"/kəpˈelə/","capelle":"/kəpˈel/","capelli":"/kəpˈeliː/","capello":"/kəpˈeloʊ/","cappel":"/kˈæpəl/","cappella":"/kɑːpˈelə/","cappelletti":"/kɑːpelˈetiː/","cappelli":"/kɑːpˈeliː/","cappello":"/kɑːpˈeloʊ/","captivity":"/kæptˈɪvətiː/","carbonate":"/kˈɑːrbənˌeɪt/","carbonated":"/kˈɑːrbənˌeɪtəd/","carbonates":"/kˈɑːrbənˌeɪts/","carcinogen":"/kɑːrsˈɪnədʒən/","carcinogenic":"/kˌɑːrsənoʊdʒˈenɪk/","carcinogens":"/kɑːrsˈɪnədʒənz/","cardiologist":"/kˌɑːrdiːˈɑːlədʒɪst/","cardiology":"/kˌɑːrdiːˈɑːlədʒiː/","carelock":"/kˈærɪlɑːk/","carlock":"/kˈɑːrlɑːk/","carnathan":"/kˈɑːrnəθæn/","carnation":"/kɑːrnˈeɪʃən/","carnations":"/kɑːrnˈeɪʃənz/","carnaud":"/kɑːrnˈɔːb/","carnevale":"/kɑːrneɪvˈɑːleɪ/","carnival":"/kˈɑːrnəvəl/","carnivals":"/kˈɑːrnəvəlz/","carport":"/kˈɑːrpɔːrt/","carports":"/kˈɑːrpɔːrts/","cartagena":"/kˌɑːrtədʒˈiːnə/","cartusciello":"/kɑːrtˌuːsiːˈeloʊ/","carvalho":"/kɑːrvˈɑːlhoʊ/","casciano":"/kɑːstʃiːˈɑːnoʊ/","casciato":"/kɑːstʃˈɑːtoʊ/","cascio":"/kˈæsiːoʊ/","castpart":"/kˈæstpɑːrt/","castparts":"/kˈæstpɑːrts/","catalog":"/kˈætəlɔːɡ/","cataloged":"/kˈætəlɔːɡd/","cataloger":"/kˈætəlˌɔːɡər/","catalogers":"/kˈætəlˌɔːɡərz/","cataloging":"/kˈætəlɑːɡɪŋ/","catalogs":"/kˈætəlɑːɡz/","catalogue":"/kˈætəlˌɔːɡ/","catalogued":"/kˈætəlˌɔːɡd/","catalogues":"/kˈætəlˌɔːɡz/","cataloguing":"/kˈætəlˌɔːɡɪŋ/","cataract":"/kˈætərækts/","cataracts":"/kˈætərˌækts/","catherman":"/kˈæðərmən/","caudal":"/kˈɑːdəl/","caudell":"/koʊdˈel/","caudill":"/kˈɔːdəl/","caudillo":"/kˌɔːdˈɪloʊ/","caudle":"/kˈɔːdəl/","cavalcade":"/kˈævəlkˌeɪd/","cavalier":"/kˌævəlˈɪr/","cavaliere":"/kɑːvɑːlˈɪriː/","cavalieri":"/kɑːvɑːlˈɪriː/","cavalierly":"/kˌævəlˈɪrliː/","cavaliers":"/kˌævəlˈɪrz/","cavallaro":"/kɑːvɑːlˈɑːroʊ/","cavallero":"/kɑːvɑːlˈeroʊ/","cavalli":"/kəvˈæliː/","cavallo":"/kəvˈæloʊ/","cavalry":"/kˈævəlriː/","cavities":"/kˈævɪtiːz/","cavitt":"/kˈævɪt/","cavity":"/kˈævətiː/","cedar":"/sˈiːdər/","cedars":"/sˈiːdərz/","cede":"/siːd/","ceded":"/sˈiːdəd/","cedeno":"/tʃedˈenoʊ/","ceder":"/sˈiːdər/","cederberg":"/sˈiːdərbərɡ/","cedergren":"/sˈiːdərɡren/","cederholm":"/sˈiːdərhoʊm/","cederquist":"/sˈedərkwɪst/","cedes":"/siːdz/","cedillo":"/tʃedˈɪloʊ/","ceding":"/sˈiːdɪŋ/","cedras":"/sˈeɪdrɑːs/","cedric":"/sˈedrɪk/","cedrone":"/seɪdrˈoʊneɪ/","cellphone":"/sˈelfoʊn/","centigrade":"/sˈentəɡrˌeɪd/","centigram":"/sˈentəɡrˌæm/","certificates":"/sərtˈɪfɪkəts/","cessation":"/sˌesˈeɪʃən/","cessna":"/sˈesnə/","cesspool":"/sˈespuːl/","cevallos":"/seɪvˈɑːloʊz/","chalcedony":"/tʃˈælsədˌoʊniː/","changeover":"/tʃˈeɪndʒˌoʊvər/","changeovers":"/tʃˈeɪndʒˌoʊvərz/","chapel":"/tʃˈæpəl/","chapell":"/ʃəpˈel/","chapelle":"/ʃəpˈel/","chappel":"/tʃˈæpəl/","chappelear":"/ʃˈæpɪlər/","chappell":"/tʃˈæpəl/","chappelle":"/ʃəpˈel/","character":"/kˈerɪktər/","characterize":"/kˈerəktərˌaɪz/","characters":"/kˈærɪktərz/","chaudhry":"/tʃˈɔːdriː/","chaudoin":"/ʃoʊdˈɔɪn/","chavalit":"/tʃəvˈɑːlɪt/","chavis":"/tʃˈævɪs/","chavitz":"/tʃˈævɪts/","chemdesign":"/tʃˈemdəzˌaɪn/","chemotherapy":"/kˌiːmoʊθˈerəpiː/","cheslock":"/tʃˈeslək/","chesterman":"/tʃˈestərmən/","chevalier":"/ʃˌevəlˈɪr/","chevis":"/tʃˈevɪs/","chinatown":"/tʃˈaɪnətˌaʊn/","chipello":"/tʃɪpˈeloʊ/","chiropractic":"/kˌaɪroʊprˈæktɪk/","chiropractor":"/kˈaɪrəprˌæktər/","chivalry":"/ʃˈɪvəlriː/","chlorinate":"/klˈɔːrənˌeɪt/","chlorinated":"/klˈɔːrənˌeɪtəd/","chlorinating":"/klˈɔːrənˌeɪtɪŋ/","chloroform":"/klˈɔːrəfˌɔːrm/","chombiono":"/tʃɑːmbiːˈoʊnoʊ/","choreograph":"/kˈɔːriːəɡrˌæf/","choreography":"/kˌɔːriːˈɑːɡrəfiː/","chromatogram":"/kroʊmˈætəɡræm/","chronar":"/krˈɑːnər/","chronic":"/krˈɑːnɪk/","chronically":"/krˈɑːnɪkəliː/","chronicle":"/krˈɑːnɪkəl/","chronicled":"/krˈɑːnɪkəld/","chronicler":"/krˈɑːnɪklər/","chroniclers":"/krˈɑːnɪklərz/","chronicles":"/krˈɑːnɪkəlz/","chronicling":"/krˈɑːnɪklɪŋ/","chronis":"/krˈoʊnɪs/","chronister":"/krˈɑːnɪstər/","chronologies":"/krənˈɑːlədʒiːz/","chronology":"/krənˈɑːlədʒiː/","chronowitz":"/krˈɑːnəwɪts/","chrusciel":"/krˈʌsiːl/","cincinnati":"/sˌɪnsənˈætiː/","circumscribe":"/sˌɜːrkəmskrˈaɪb/","circumspect":"/sˈɜːrkəmspˌekt/","civitello":"/tʃiːviːtˈeloʊ/","classaction":"/klˈæsˈækʃən/","classactions":"/klˈæsˈækʃənz/","claud":"/klɔːd/","claude":"/klɔːd/","claudet":"/klɔːdˈet/","claudette":"/kloʊdˈet/","claudia":"/klˈɔːdiːə/","claudian":"/klˈɔːdiːən/","claudie":"/klˈɔːdiː/","claudina":"/klˈɔːdɪnə/","claudine":"/klɔːdˈiːn/","claudio":"/klˈɔːdiːˌoʊ/","claudius":"/klˈɔːdiːəs/","claudson":"/klˈɔːdsən/","clevite":"/kləvˈaɪt/","climactic":"/klaɪmˈæktɪk/","clingenpeel":"/klɪŋɡˈenpiːl/","clock":"/klɑːk/","clocked":"/klɑːkt/","clocker":"/klˈɑːkər/","clockers":"/klˈɑːkərz/","clocking":"/klˈɑːkɪŋ/","clocks":"/klɑːks/","clockwise":"/klˈɑːkwaɪz/","clockwork":"/klˈɑːkwɜːrk/","clog":"/klɑːɡ/","clogged":"/klɔːɡd/","clogging":"/klˈɑːɡɪŋ/","clogs":"/klɑːɡz/","clogston":"/klˈɑːɡstən/","clovis":"/klˈoʊvɪs/","cluster":"/klˈʌstər/","clustered":"/klˈʌstərd/","clustering":"/klˈʌstərɪŋ/","clusters":"/klˈʌstərz/","coalesced":"/kˌoʊəlˈest/","coalescing":"/kˌoʊəlˈesɪŋ/","codification":"/kˌɑːdəfəkˈeɪʃən/","coefficient":"/kˌoʊəfˈɪʃənt/","coefficients":"/kˌoʊəfˈɪʃənts/","coequal":"/koʊˈiːkwəl/","coerced":"/koʊˈɜːrst/","cogency":"/kˈoʊdʒənsiː/","cogenerate":"/kˈoʊdʒˈenərˌeɪt/","cogenerated":"/kˈoʊdʒˈenərˌeɪtɪd/","cogeneration":"/kˈoʊdʒˈenərˈeɪʃən/","cogenerator":"/koʊdʒˈenərˌeɪtər/","cogenerators":"/koʊdʒˈenərˌeɪtərz/","cogent":"/kˈoʊdʒənt/","cognac":"/kˈoʊnjæk/","cognetics":"/kˌɑːɡnˈetɪks/","cognex":"/kˈɑːɡneks/","cognition":"/kɑːɡnˈɪʃən/","cognizance":"/kˈɑːɡnəzəns/","cognizant":"/kˈɑːɡnəzənt/","cognoscenti":"/kˌɑːɡnˌɔːʃˈentiː/","colavito":"/koʊlɑːvˈiːtoʊ/","coliform":"/kˈoʊləfˌɔːrm/","coliforms":"/kˈoʊləfˌɔːrmz/","collagen":"/kˈɑːləɡən/","collectivism":"/kəlˈektɪvˌɪzəm/","collectivist":"/kəlˈektɪvɪst/","collocation":"/kɑːləkˈeɪʃən/","cologne":"/kəlˈoʊn/","combination":"/kˌɑːmbənˈeɪʃən/","combinations":"/kˌɑːmbənˈeɪʃənz/","commemorated":"/kəmˈemərˌeɪtɪd/","commemorates":"/kəmˈemərˌeɪts/","commenced":"/kəmˈenst/","commotion":"/kəmˈoʊʃən/","compact":"/kˈɑːmpækt/","compacted":"/kəmpˈæktɪd/","compactness":"/kəmpˈæktnəs/","compactor":"/kəmpˈæktər/","compacts":"/kəmpˈækts/","compartment":"/kəmpˈɑːrtmənt/","compartments":"/kəmpˈɑːrtmənts/","compelled":"/kəmpˈeld/","compelling":"/kəmpˈelɪŋ/","compellingly":"/kəmpˈelɪŋliː/","compels":"/kəmpˈelz/","comport":"/kəmpˈɔːrt/","comported":"/kəmpˈɔːrtəd/","comportment":"/kəmpˈɔːrtmənt/","compressed":"/kəmprˈest/","compresses":"/kˈɑːmpresəz/","compressing":"/kəmprˈesɪŋ/","compression":"/kəmprˈeʃən/","compressor":"/kəmprˈesər/","compressors":"/kəmprˈesərz/","compugraphic":"/kˌɑːmpjuːɡrˈæfɪk/","compulsion":"/kəmpˈʌlʃən/","compulsions":"/kəmpˈʊlʃənz/","compulsive":"/kəmpˈʌlsɪv/","compulsively":"/kəmpˈʌlsɪvliː/","compulsory":"/kəmpˈʌlsəriː/","compuserve":"/kˈɑːmpjuːsərv/","computalog":"/kˈɑːmpjuːtˌælɔːɡ/","conatser":"/kˈɑːnətsər/","conaty":"/kˈɑːnətiː/","concatenate":"/kənkˈætənˌeɪt/","concatenated":"/kənkˈætənˌeɪtəd/","concatenates":"/kənkˈætənˌeɪts/","concede":"/kənsˈiːd/","conceded":"/kənsˈiːdɪd/","concedes":"/kənsˈiːdz/","conceding":"/kənsˈiːdɪŋ/","concession":"/kənsˈeʃən/","concessional":"/kənsˈeʃənəl/","concessions":"/kənsˈeʃənz/","concluded":"/kənklˈuːdəd/","concludes":"/kənklˈuːdz/","concluding":"/kənklˈuːdɪŋ/","conclusions":"/kənklˈuːʒənz/","conclusive":"/kənklˈuːsɪv/","conclusively":"/kənklˈuːsɪvliː/","condemnation":"/kˌɑːndəmnˈeɪʃən/","conductivity":"/kˌɑːndˌʌktˈɪvətiː/","confect":"/kənfˈekt/","confection":"/kənfˈekʃən/","confectioner":"/kənfˈekʃənər/","confections":"/kənfˈekʃənz/","conform":"/kənfˈɔːrm/","conformance":"/kənfˈɔːrməns/","conformed":"/kənfˈɔːrmd/","conforming":"/kənfˈɔːrmɪŋ/","conformist":"/kənfˈɔːrmɪst/","conformists":"/kənfˈɔːrməsts/","conformity":"/kənfˈɔːrmətiː/","conforms":"/kənfˈɔːrmz/","congenial":"/kəndʒˈiːnjəl/","congeniality":"/kəndʒˌiːniːˈælətiː/","congenital":"/kəndʒˈenətəl/","congress":"/kˈɑːŋɡrəs/","congresses":"/kˈɑːŋɡrəsɪz/","congressman":"/kˈɑːŋɡrəsmən/","congressmen":"/kˈɑːŋɡrəsmɪn/","connectivity":"/kənektˈɪvɪtiː/","conscience":"/kˈɑːnʃəns/","consciences":"/kˈɑːntʃɪnsɪz/","conscious":"/kˈɑːnʃəs/","consciously":"/kˈɑːnʃəsliː/","conscript":"/kˈɑːnskrɪpt/","conscripted":"/kənskrˈɪptɪd/","conscription":"/kənskrˈɪpʃən/","conscripts":"/kˈɑːnskrɪpts/","consequences":"/kˈɑːnsəkwˌensəz/","consequent":"/kˈɑːnsəkwənt/","consequently":"/kˈɑːnsəkwəntliː/","conservancy":"/kənsˈɜːrvənsiː/","conservation":"/kˌɑːnsərvˈeɪʃən/","conservatism":"/kənsˈɜːrvətˌɪzəm/","conservative":"/kənsˈɜːrvətɪv/","conservator":"/kənsˈɜːrvətər/","conservators":"/kənsˈɜːrvətərz/","conservatory":"/kənsˈɜːrvətɔːriː/","conserved":"/kənsˈɜːrvd/","conserving":"/kənsˈɜːrvɪŋ/","consign":"/kənsˈaɪn/","consigned":"/kənsˈaɪnd/","consignment":"/kənsˈaɪnmənt/","conspicuous":"/kənspˈɪkjuːəs/","constructed":"/kənstrˈʌktəd/","constructing":"/kənstrˈʌktɪŋ/","constructive":"/kənstrˈʌktɪv/","constructor":"/kənstrˈʌktər/","constructors":"/kənstrˈʌktərz/","constructs":"/kənstrˈʌkts/","contact":"/kˈɑːntækt/","contacted":"/kˈɑːntˌæktɪd/","contacting":"/kˈɑːntˌæktɪŋ/","contacts":"/kˈɑːntækts/","contaminate":"/kəntˈæmənˌeɪt/","contaminated":"/kəntˈæmənˌeɪtəd/","contaminates":"/kəntˈæmənˌeɪts/","contemplate":"/kˈɑːntəmplˌeɪt/","contemplated":"/kˈɑːntəmplˌeɪtɪd/","contemplates":"/kˈɑːntəmplˌeɪts/","contempo":"/kˌɑːntˈempoʊ/","contempt":"/kəntˈempt/","contemptible":"/kəntˈemptəbəl/","contemptuous":"/kəntˈemptʃuːəs/","contingency":"/kəntˈɪndʒənsiː/","contingent":"/kəntˈɪndʒənt/","contingents":"/kəntˈɪndʒənts/","contracted":"/kˈɑːntræktəd/","contracting":"/kˈɑːntræktɪŋ/","contraction":"/kəntrˈækʃən/","contractions":"/kəntrˈækʃənz/","contractor":"/kˈɑːntrˌæktər/","contractors":"/kˈɑːntrˌæktərz/","contracts":"/kˈɑːntrækts/","contractual":"/kəntrˈæktʃuːəl/","contradicted":"/kˌɑːntrədˈɪktəd/","contradicts":"/kˌɑːntrədˈɪkts/","contretemps":"/kˈɑːntrətˌemps/","convalesce":"/kˌɑːnvəlˈes/","convalescent":"/kˌɑːnvəlˈesənt/","convergence":"/kənvˈɜːrdʒəns/","convergent":"/kənvˈɜːrdʒənt/","convinced":"/kənvˈɪnst/","convivial":"/kənvˈɪviːəl/","convocation":"/kˌɑːnvəkˈeɪʃən/","coopervision":"/kˈuːpərvˌɪʒən/","coordinate":"/koʊˈɔːrdənət/","coordinated":"/koʊˈɔːrdəneɪtɪd/","coordinates":"/koʊˈɔːrdənəts/","coordinating":"/koʊˈɔːrdənˌeɪtɪŋ/","coordination":"/koʊˌɔːrdənˈeɪʃən/","coordinator":"/koʊˈɔːrdənˌeɪtər/","coordinators":"/koʊˈɔːrdənˌeɪtərz/","copartner":"/kˈoʊpˌɑːrtnər/","copartners":"/kˈoʊpˌɑːrtnərz/","copelan":"/kˈɑːpɪlæn/","copeland":"/kˈoʊplənd/","copelco":"/kˌoʊpˈelkoʊ/","copelin":"/kˈɑːpɪlɪn/","copenhagen":"/kˈoʊpənhˌeɪɡən/","coppel":"/kˈɑːpəl/","coprocessor":"/kˈoʊprˈɑːsesər/","coprocessors":"/kˈoʊprˈɑːsesərz/","corologis":"/kərrˈɑːlədʒɪs/","coronation":"/kˌɔːrənˈeɪʃən/","corrupt":"/kərˈʌpt/","corrupted":"/kərˈʌptɪd/","corruptible":"/kərˈʌptɪbəl/","corrupting":"/kərˈʌptɪŋ/","corruption":"/kərˈʌpʃən/","corruptions":"/kərˈʌpʃənz/","corruptive":"/kərˈʌptɪv/","corruptly":"/kərˈʌptliː/","corrupts":"/kərˈʌpts/","corvallis":"/kˌɔːrvˈælɪs/","coscia":"/kˈoʊstʃə/","cosmetology":"/kˌɑːzmətˈɑːlədʒiː/","cosmology":"/kɔːzmˈɔːlədʒiː/","cotterman":"/kˈɑːtərmən/","coudersport":"/kˈaʊdərzpˌɔːrt/","countenanced":"/kˈaʊntənənst/","counteract":"/kˈaʊntərˌækt/","counteracted":"/kˈaʊntərˌæktɪd/","counterman":"/kˈaʊntərmˌæn/","countermove":"/kˈaʊntərmˌuːv/","countermoves":"/kˈaʊntərmˌuːvz/","counterpart":"/kˈaʊntərpˌɑːrt/","counterparts":"/kˈaʊntərpˌɑːrts/","counterparty":"/kˈaʊntərpˌɑːrtiː/","courageous":"/kərˈeɪdʒəs/","courageously":"/kərˈeɪdʒəsliː/","coval":"/koʊveɪˈæl/","covalt":"/kˈoʊvɑːlt/","covitz":"/kˈoʊvɪts/","creatologist":"/kriːˌeɪtˈɔːlədʒɪst/","credence":"/krˈiːdəns/","credential":"/krɪdˈentʃəl/","credentialed":"/krədˈentʃəld/","credentials":"/krədˈenʃəlz/","credenza":"/krədˈenzə/","credeur":"/krɪdˈɜːr/","credibility":"/krˌedəbˈɪlɪtiː/","credibly":"/krˈedəbliː/","credit":"/krˈedət/","creditable":"/krˈedətəbəl/","creditably":"/krˈedətəbliː/","creditbank":"/krˈedɪtbˌæŋk/","credited":"/krˈedətəd/","credithrift":"/krˌedɪθrˈɪft/","crediting":"/krˈedətɪŋ/","credito":"/kredˈiːtoʊ/","creditor":"/krˈedətər/","creditors":"/krˈedɪtərz/","credits":"/krˈedɪts/","creditwatch":"/krˈedɪtwˌɑːtʃ/","creditworthy":"/krˈedɪtwˌɜːrðiː/","credle":"/krˈedəl/","credo":"/krˈeɪdoʊ/","credulity":"/krɪdˈuːlətiː/","credulous":"/krˈedʒələs/","creque":"/krek/","cresci":"/krˈesiː/","creviston":"/krˈevɪstɑːn/","criminology":"/krˌɪmɪnˈɑːlədʒiː/","crisci":"/krˈɪsiː/","criscione":"/kriːstʃˈoʊniː/","crispell":"/krˈɪspəl/","crovitz":"/krˈoʊvɪts/","cryogenic":"/krˈaɪədʒˌenɪk/","cryogenics":"/krˈaɪədʒˌenɪks/","culminate":"/kˈʌlmɪnˌeɪt/","culminated":"/kˈʌlmənˌeɪtəd/","culminates":"/kˈʌlmɪnˌeɪts/","culminating":"/kˈʌlmənˌeɪtɪŋ/","culmination":"/kˌʌlmənˈeɪʃən/","cuneiform":"/kjˈuːniːəfˌɔːrm/","curb":"/kɜːrb/","curbed":"/kɜːrbd/","curbelo":"/kʊrbˈeloʊ/","curbing":"/kˈɜːrbɪŋ/","curbow":"/kˈɜːrboʊ/","curbs":"/kɜːrbz/","curbside":"/kˈɜːrbsaɪd/","curbstone":"/kˈɜːrbstoʊn/","curby":"/kˈɜːrbiː/","curmudgeon":"/kərmˈʌdʒɪn/","curmudgeons":"/kərmˈʌdʒɪnz/","cypress":"/sˈaɪprəs/","cytogen":"/sˈaɪtoʊdʒen/","cytology":"/saɪtˈɑːlədʒiː/","dactyl":"/dˈæktɪl/","dagen":"/dˈæɡən/","dagenais":"/dˈæʒɪneɪ/","dagenham":"/dˈæɡənhˌæm/","dagenhart":"/dˈæɡənhˌɑːrt/","dalporto":"/dɑːlpˈɔːrtoʊ/","damnation":"/dæmnˈeɪʃən/","danced":"/dænst/","datagraphix":"/dˈeɪtəɡrˌæfɪks/","daubenspeck":"/dˈaʊbɪnspɪk/","daudelin":"/dˈoʊdɪlæn/","davalos":"/dɑːvˈɑːloʊz/","davenport":"/dˈævənpˌɔːrt/","david":"/dˈeɪvɪd/","davida":"/dɑːvˈiːdə/","davide":"/dˌʌvˈiːdˌeɪ/","davidge":"/dˈævɪdʒ/","davidian":"/dəvˈɪdiːən/","davidians":"/dəvˈɪdiːənz/","davidoff":"/dˈeɪvɪdɔːf/","davidow":"/dˈævɪdoʊ/","davids":"/dˈeɪvɪdz/","davidson":"/dˈeɪvɪdsən/","davis":"/dˈeɪvəs/","davison":"/dˈeɪvɪsən/","davisson":"/dˈævɪsən/","davitt":"/dəvˈɪt/","deactivate":"/dˌiːˈæktɪvˌeɪt/","deactivated":"/dˌiːˈæktɪvˌeɪtɪd/","deadlock":"/dˈedlɑːk/","deadlocked":"/dˈedlɑːkt/","deadlocks":"/dˈedlɑːks/","debenedictis":"/dˈebɪnədɪktɪs/","deblock":"/dˈeblək/","debraudwick":"/dɪbrˈɑːdwɪk/","decaffeinate":"/diːkˈæfənˌeɪt/","decedent":"/desˈiːdənt/","decedents":"/desˈiːdənts/","deconstruct":"/dˌiːkənstrˈʌkt/","deduced":"/dɪdˈuːst/","defabio":"/dɪfˈɑːbiːoʊ/","deface":"/dɪfˈeɪs/","defaced":"/dɪfˈeɪst/","defacing":"/dɪfˈeɪsɪŋ/","defect":"/dˈiːfekt/","defected":"/dɪfˈektɪd/","defecting":"/dɪfˈektɪŋ/","defection":"/dɪfˈekʃən/","defections":"/dɪfˈekʃənz/","defective":"/dɪfˈektɪv/","defector":"/dɪfˈektər/","defectors":"/dɪfˈektərz/","defects":"/dˈiːfekts/","deficiencies":"/dɪfˈɪʃənsiːz/","deficiency":"/dɪfˈɪʃənsiː/","deficient":"/dɪfˈɪʃənt/","deficit":"/dˈefəsət/","deficits":"/dˈefɪsɪts/","deform":"/diːfˈɔːrm/","deformation":"/dˌiːfɔːrmˈeɪʃən/","deformed":"/dɪfˈɔːrmd/","deformities":"/dɪfˈɔːrmətiːz/","deformity":"/dɪfˈɔːrmətiː/","defraud":"/dɪfrˈɔːd/","defrauded":"/dɪfrˈɔːdɪd/","defrauding":"/dɪfrˈɔːdɪŋ/","degen":"/dˈeɡən/","degener":"/dˈeɡiːnər/","degeneracy":"/dɪdʒˈenərəsiː/","degenerate":"/dɪdʒˈenərət/","degenerated":"/dɪdʒˈenərˌeɪtɪd/","degenerates":"/dɪdʒˈenərəts/","degenerating":"/dɪdʒˈenərˌeɪtɪŋ/","degeneration":"/dɪdʒˌenərˈeɪʃən/","degenerative":"/dɪdʒˈenərətɪv/","degeneres":"/dɪdʒɪnˈeres/","degenhardt":"/dˈeɡɪnhɑːrt/","degenhart":"/dˈeɡənhˌɑːrt/","degennaro":"/dɪdʒenˈɑːroʊ/","degeorge":"/dˈeɡiːərɡ/","degradable":"/dɪɡrˈeɪdəbəl/","degradation":"/dˌeɡrədˈeɪʃən/","degradations":"/dˌeɡrədˈeɪʃənz/","degrade":"/dɪɡrˈeɪd/","degraded":"/dɪɡrˈeɪdəd/","degrades":"/dɪɡrˈeɪdz/","degrading":"/dɪɡrˈeɪdɪŋ/","deification":"/dˌiːəfəkˈeɪʃən/","delauder":"/dˈelaʊdər/","delaval":"/dˈeləvæl/","delgaudio":"/delɡˈɔːdiːoʊ/","dellavalle":"/dˈeləvɑːliː/","delsignore":"/delsiːɡnˈɔːriː/","delvalle":"/dˌelvˈæliː/","demobilize":"/dɪmˈoʊbəlˌaɪz/","demobilized":"/dɪmˈoʊbəlˌaɪzd/","demobilizes":"/dɪmˈoʊbəlˌaɪzɪz/","demobilizing":"/dɪmˈoʊbəlˌaɪzɪŋ/","demographer":"/dɪmˈɑːɡrəfər/","demographers":"/dɪmˈɑːɡrəfərz/","demographic":"/dˌeməɡrˈæfɪk/","demographics":"/dˌeməɡrˈæfɪks/","demography":"/dɪmˈɑːɡrəfiː/","demote":"/dɪmˈoʊt/","demoted":"/dɪmˈoʊtɪd/","demotion":"/dɪmˈoʊʃən/","demotions":"/dɪmˈoʊʃənz/","demott":"/dəmˈɑːt/","demov":"/dˈemɑːv/","denatale":"/dɪnɑːtˈɑːliː/","denature":"/dɪnˈeɪtʃər/","denatured":"/dɪnˈeɪtʃərd/","denominate":"/dɪnˈɑːmənˌeɪt/","denominated":"/dɪnˈɑːmənˌeɪtɪd/","denomination":"/dɪnˌɔːmənˈeɪʃən/","denominator":"/dɪnˈɑːmənˌeɪtər/","denounced":"/dɪnˈaʊnst/","deontology":"/diːɑːntˈɑːlədʒiː/","depart":"/dɪpˈɑːrt/","departed":"/dɪpˈɑːrtəd/","departing":"/dɪpˈɑːrtɪŋ/","department":"/dɪpˈɑːrtmənt/","departmental":"/dɪpˌɑːrtmˈenəl/","departments":"/dɪpˈɑːrtmənts/","departs":"/dɪpˈɑːrts/","departure":"/dɪpˈɑːrtʃər/","departures":"/dɪpˈɑːrtʃərz/","deportation":"/dˌiːpɔːrtˈeɪʃən/","deportations":"/dˌiːpɔːrtˈeɪʃənz/","deported":"/dɪpˈɔːrtəd/","deportee":"/dˌiːpɔːrtˈiː/","deportees":"/dˌiːpɔːrtˈiːz/","deporting":"/dɪpˈɔːrtɪŋ/","deportment":"/dəpˈɔːrtmənt/","depravity":"/dɪprˈævətiː/","depress":"/dɪprˈes/","depressant":"/dɪprˈesənt/","depressants":"/dɪprˈesənts/","depressed":"/dɪprˈest/","depresses":"/dɪprˈesəz/","depressing":"/dɪprˈesɪŋ/","depressingly":"/dɪprˈesɪŋliː/","depression":"/dɪprˈeʃən/","depressions":"/dɪprˈeʃənz/","depressive":"/dɪprˈesɪv/","depressurize":"/dɪprˈeʃərˌaɪz/","deprogram":"/diːprˈoʊɡræm/","dequeker":"/dɪkwˈekər/","dermagraph":"/dˈɜːrməɡræf/","dermatology":"/dˌɜːrmətˈɑːlədʒiː/","dermot":"/dˈɜːrmət/","dermott":"/dˈɜːrmət/","dervish":"/dˈɜːrvɪʃ/","dervishich":"/dˈɜːrvɪʃɪk/","desalination":"/diːsˌeɪlɪnˈeɪʃən/","describable":"/dɪskrˈaɪbəbəl/","described":"/dɪskrˈaɪbd/","describes":"/dɪskrˈaɪbz/","describing":"/dɪskrˈaɪbɪŋ/","descriptions":"/dɪskrˈɪpʃənz/","descriptive":"/dɪskrˈɪptɪv/","deserved":"/dɪzˈɜːrvd/","deservedly":"/dɪzˈɜːrvədliː/","deserves":"/dɪzˈɜːrvz/","deserving":"/dɪzˈɜːrvɪŋ/","designated":"/dˈezɪɡnˌeɪtɪd/","designates":"/dˈezɪɡnˌeɪts/","designating":"/dˈezɪɡnˌeɪtɪŋ/","designation":"/dˌezəɡnˈeɪʃən/","designations":"/dˌezəɡnˈeɪʃənz/","designcraft":"/dɪzˈaɪnkrˌæft/","designed":"/dɪzˈaɪnd/","designee":"/dˌezɪɡnˈiː/","designees":"/dˌezɪɡnˈiːz/","designer":"/dɪzˈaɪnər/","designers":"/dɪzˈaɪnərz/","designing":"/dɪzˈaɪnɪŋ/","designor":"/dɪsˈɪɡnər/","designs":"/dɪzˈaɪnz/","despicable":"/dɪspˈɪkəbəl/","destination":"/dˌestənˈeɪʃən/","destinations":"/dˌestənˈeɪʃənz/","destruct":"/dɪstrˈʌkt/","destructable":"/dɪstrˈʌktəbəl/","destructed":"/dɪstrˈʌktɪd/","destructing":"/dɪstrˈʌktɪŋ/","destruction":"/dɪstrˈʌkʃən/","destructs":"/dɪstrˈʌkts/","detemple":"/dˈetɪmpəl/","detergent":"/dɪtˈɜːrdʒənt/","detergents":"/dɪtˈɜːrdʒənts/","determan":"/dˈiːtərmən/","determent":"/dɪtˈɜːrmənt/","determinable":"/dɪtˈɜːrmənəbəl/","determinant":"/dɪtˈɜːrmənənt/","determinants":"/dɪtˈɜːrmənənts/","determinate":"/dɪtˈɜːrmənˌeɪt/","determined":"/dɪtˈɜːrmənd/","determinedly":"/dətˈɜːrmənədliː/","determines":"/dətˈɜːrmənz/","determining":"/dɪtˈɜːrmənɪŋ/","determinism":"/dɪtˈɜːrmənˌɪzəm/","determinist":"/dɪtˈɜːrmənəst/","detonate":"/dˈetənˌeɪt/","detonated":"/dˈetənˌeɪtəd/","detonating":"/dˈetənˌeɪtɪŋ/","detonation":"/dˌetənˈeɪʃən/","detonations":"/dˌetənˈeɪʃənz/","detonator":"/dˈetənˌeɪtər/","detonators":"/dˈetənˌeɪtərz/","detract":"/dɪtrˈækt/","detracted":"/dɪtrˈæktɪd/","detracting":"/dɪtrˈæktɪŋ/","detractor":"/diːtrˈæktər/","detractors":"/dɪtrˈæktərz/","detracts":"/dɪtrˈækts/","deval":"/dɪvˈɑːl/","devall":"/deɪvˈɑːl/","devalle":"/dɪvˈæl/","devaluate":"/dɪvˈæljuːˌeɪt/","devaluated":"/dɪvˈæljuːˌeɪtɪd/","devaluation":"/dɪvˌæljuːˈeɪʃən/","devaluations":"/dˌiːvæljuːˈeɪʃənz/","devalue":"/dɪvˈæljˌuː/","devalued":"/dɪvˈæljˌuːd/","devaluing":"/dɪvˈæljuːɪŋ/","devenport":"/dɪvˈenpɔːrt/","devise":"/dɪvˈaɪz/","devised":"/dɪvˈaɪzd/","devises":"/dɪvˈaɪzɪz/","devising":"/dɪvˈaɪzɪŋ/","devita":"/dɪvˈiːtə/","devito":"/dɪvˈiːtoʊ/","devitt":"/dɪvˈɪt/","devivo":"/dɪvˈiːvoʊ/","diaconate":"/daɪˈækənət/","diagram":"/dˈaɪəɡrˌæm/","diagraming":"/dˈaɪəɡrˌæmɪŋ/","diagrammatic":"/dˌaɪəɡrəmˈætɪk/","diagrammed":"/dˈaɪəɡrˌæmd/","diagrams":"/dˈaɪəɡrˌæmz/","dialog":"/dˈaɪəlɔːɡ/","dialogue":"/dˈaɪəlˌɔːɡ/","dialogues":"/dˈaɪəlˌɔːɡz/","diaphonia":"/dˌaɪəfˈoʊniːə/","diathermy":"/dˈaɪəθˌɜːrmiː/","diced":"/daɪst/","dicta":"/dˈɪktə/","dictaphone":"/dˈɪktəfˌoʊn/","dictated":"/dɪktˈeɪtəd/","dictates":"/dɪktˈeɪts/","dictating":"/dˈɪktˌeɪtɪŋ/","dictation":"/dɪktˈeɪʃən/","dictatorial":"/dˌɪktətˈɔːriːəl/","dictators":"/dɪktˈeɪtərz/","dictatorship":"/dɪktˈeɪtərʃˌɪp/","diction":"/dˈɪkʃən/","dictionaries":"/dˈɪkʃənˌeriːz/","dictum":"/dˈɪktəm/","didactic":"/daɪdˈæktɪk/","didonato":"/dɪdoʊnˈɑːtoʊ/","difabio":"/dɪfˈeɪbiːoʊ/","difficult":"/dˈɪfəkəlt/","difficulties":"/dˈɪfəkəltiːz/","difficultly":"/dˈɪfəkəltliː/","difficulty":"/dˈɪfəkəltiː/","diffract":"/dɪfrˈækt/","diffraction":"/dɪfrˈækʃən/","digennaro":"/dɪdʒenˈɑːroʊ/","digenova":"/dˌiːdʒenˈoʊvə/","digress":"/daɪɡrˈes/","digressed":"/daɪɡrˈest/","digresses":"/daɪɡrˈesɪz/","digressing":"/daɪɡrˈesɪŋ/","digression":"/daɪɡrˈeʃən/","digressions":"/daɪɡrˈeʃənz/","diligence":"/dˈɪlədʒəns/","diligent":"/dˈɪlɪdʒənt/","diligently":"/dˈɪlədʒəntliː/","dimascio":"/dɪmˈæsiːoʊ/","dinatale":"/dɪnɑːtˈɑːliː/","dippel":"/dˈɪpəl/","disaffect":"/dˌɪsəfˈekt/","disaffected":"/dˌɪsəfˈektɪd/","disaffection":"/dˌɪsəfˈekʃən/","disapproval":"/dɪsəprˈuːvəl/","disciple":"/dɪsˈaɪpəl/","disciples":"/dɪsˈaɪpəlz/","disciplinary":"/dˈɪsəplənˌeriː/","discipline":"/dˈɪsəplən/","disciplined":"/dˈɪsəplənd/","disciplines":"/dˈɪsəplənz/","disciplining":"/dˈɪsəplənɪŋ/","discography":"/dɪskˈɔːɡrəfiː/","discotheque":"/dˈɪskoʊtˌek/","discredit":"/dɪskrˈedət/","discredited":"/dɪskrˈedɪtɪd/","discrediting":"/dɪskrˈedətɪŋ/","discredits":"/dɪskrˈedəts/","discriminate":"/dɪskrˈɪmənˌeɪt/","disgraced":"/dɪsɡrˈeɪst/","disinfect":"/dɪsɪnfˈekt/","disinfectant":"/dɪsɪnfˈektənt/","disinfection":"/dɪsɪnfˈekʃən/","disinform":"/dɪsɪnfˈɔːrm/","disingenuous":"/dɪsɪndʒˈenjuːəs/","disinvite":"/dɪsɪnvˈaɪt/","disinvited":"/dˌɪsˌɪnvˈaɪtɪd/","dislocate":"/dˈɪsloʊkeɪt/","dislocated":"/dˈɪsloʊkeɪtɪd/","dislocation":"/dɪslˈoʊkˈeɪʃən/","dislocations":"/dɪslˈoʊkˈeɪʃənz/","dismember":"/dɪsmˈembər/","dismembered":"/dɪsmˈembərd/","dismembering":"/dɪsmˈembərɪŋ/","dispel":"/dɪspˈel/","dispell":"/dɪspˈel/","dispelled":"/dɪspˈeld/","dispelling":"/dɪspˈelɪŋ/","dispels":"/dɪspˈelz/","displaced":"/dɪsplˈeɪst/","disrespect":"/dˌɪsrɪspˈekt/","disrespected":"/dˌɪsrɪspˈektɪd/","disrespects":"/dˌɪsrɪspˈekts/","disrupted":"/dɪsrˈʌptɪd/","disrupting":"/dɪsrˈʌptɪŋ/","disruption":"/dɪsrˈʌpʃən/","disruptions":"/dɪsrˈʌpʃənz/","disruptive":"/dɪsrˈʌptɪv/","disrupts":"/dɪsrˈʌpts/","disseminate":"/dɪsˈemənˌeɪt/","disseminated":"/dɪsˈemənˌeɪtəd/","disseminates":"/dɪsˈemənˌeɪts/","disservice":"/dɪsˈɜːrvəs/","distanced":"/dˈɪstənst/","distemper":"/dɪstˈempər/","distracted":"/dɪstrˈæktəd/","distracting":"/dɪstrˈæktɪŋ/","distraction":"/dɪstrˈækʃən/","distractions":"/dɪstrˈækʃənz/","distracts":"/dɪstrˈækts/","disturb":"/dɪstˈɜːrb/","disturbance":"/dɪstˈɜːrbəns/","disturbances":"/dɪstˈɜːrbənsəz/","disturbed":"/dɪstˈɜːrbd/","disturbing":"/dɪstˈɜːrbɪŋ/","disturbingly":"/dɪstˈɜːrbɪŋliː/","disturbs":"/dɪstˈɜːrbz/","divalent":"/daɪvˈeɪlənt/","divall":"/dˈɪvəl/","divergence":"/daɪvˈɜːrdʒəns/","divergences":"/daɪvˈɜːrdʒənsɪz/","divergent":"/daɪvˈɜːrdʒənt/","divide":"/dɪvˈaɪd/","divided":"/dɪvˈaɪdəd/","dividend":"/dˈɪvɪdˌend/","dividends":"/dˈɪvədˌendz/","divider":"/dɪvˈaɪdər/","divides":"/dɪvˈaɪdz/","dividing":"/dɪvˈaɪdɪŋ/","divination":"/dˌɪvənˈeɪʃən/","divis":"/dˈiːvɪs/","divisible":"/dɪvˈɪzəbəl/","division":"/dɪvˈɪʒən/","divisional":"/dɪvˈɪʒənəl/","divisions":"/dɪvˈɪʒənz/","divisive":"/dɪvˈaɪsɪv/","divisiveness":"/dɪvˈaɪsɪvnəs/","divison":"/dɪvˈɪʒən/","divisor":"/dɪvˈaɪzər/","divita":"/dɪvˈiːtə/","divito":"/dɪvˈiːtoʊ/","divorced":"/dɪvˈɔːrst/","dochterman":"/dˈɑːktərmən/","dodgen":"/dˈɑːdʒən/","dolgen":"/dˈoʊldʒen/","dominate":"/dˈɑːmənˌeɪt/","dominated":"/dˈɑːmənˌeɪtəd/","dominates":"/dˈɑːmənˌeɪts/","dominating":"/dˈɑːmənˌeɪtɪŋ/","domination":"/dˌɑːmənˈeɪʃən/","donat":"/dˈoʊnət/","donata":"/dənˈɑːtə/","donate":"/dˈoʊneɪt/","donated":"/dˈoʊnˌeɪtəd/","donatelli":"/doʊnɑːtˈeliː/","donates":"/dˈoʊneɪts/","donath":"/dˈɑːnəθ/","donathan":"/dˈɑːnəθən/","donati":"/doʊnˈɑːtiː/","donating":"/dˈoʊnˌeɪtɪŋ/","donation":"/doʊnˈeɪʃən/","donations":"/doʊnˈeɪʃənz/","donatists":"/dˈɑːnətəsts/","donato":"/dənˈɑːtoʊ/","dongen":"/dˈɔːŋɡən/","dorval":"/dˈɔːrvəl/","dougens":"/dˈaʊɡənz/","dovidio":"/doʊvˈiːdiːoʊ/","dovish":"/dˈoʊvɪʃ/","downgrade":"/dˈaʊnɡrˈeɪd/","downgraded":"/dˈaʊnɡrˈeɪdəd/","downgrades":"/dˈaʊnɡrˈeɪdz/","downgrading":"/dˈaʊnɡrˈeɪdɪŋ/","downgradings":"/dˈaʊnɡrˌeɪdɪŋz/","doxologies":"/dɑːksˈɑːlədʒiːz/","doxology":"/dɑːksˈɑːlədʒiː/","dravis":"/drˈævɪs/","dubious":"/dˈuːbiːəs/","dudgeon":"/dˈʌdʒən/","dungeon":"/dˈʌndʒən/","dungeons":"/dˈʌndʒənz/","durban":"/dˈɜːrbən/","durben":"/dˈɜːrbən/","durbin":"/dˈɜːrbɪn/","duval":"/duːvˈæl/","duvalier":"/duːvˈæljər/","duvaliers":"/duːvˈeɪljərz/","duvall":"/duːvˈɑːl/","dynafac":"/dˈaɪnəfˌæk/","dynatech":"/dˈɪnətˌek/","eagen":"/ˈiːɡən/","earphone":"/ˈɪrfoʊn/","earphones":"/ˈɪrfoʊnz/","earthmoving":"/ˈɜːrθmˌuːvɪŋ/","ecevit":"/ˈesəvɪt/","echograph":"/ˈekoʊɡrˌæf/","echography":"/ekˈɑːɡrəfiː/","echolocation":"/ˌekoʊloʊkˈeɪʃən/","ecogen":"/ˈiːkoʊɡən/","ecological":"/iːkəlˈɑːdʒɪkəl/","ecologically":"/iːkəlˈɑːdʒɪkliː/","ecologist":"/ɪkˈɑːlədʒɪst/","ecologists":"/ɪkˈɑːlədʒɪsts/","ecology":"/ɪkˈɑːlədʒiː/","edict":"/ˈiːdɪkt/","edicts":"/ˈiːdɪkts/","edification":"/ˌedəfəkˈeɪʃən/","edifice":"/ˈedəfəs/","edival":"/edˈiːvəl/","efecto":"/ɪfˈektoʊ/","efface":"/ɪfˈeɪs/","effacing":"/ɪfˈeɪsɪŋ/","effected":"/ɪfˈektəd/","effecting":"/ɪfˈektɪŋ/","effectively":"/ɪfˈektɪvliː/","effects":"/ɪfˈekts/","effectuate":"/ɪfˈektʃuːˌeɪt/","effeminate":"/iːfˈemɪnət/","efficacious":"/ˌefəkˈeɪʃəs/","efficacy":"/ˈefɪkˌæsiː/","efficiencies":"/ɪfˈɪʃənsiːz/","efficiently":"/ɪfˈɪʃəntliː/","eggen":"/ˈeɡən/","eggenberger":"/ˈeɡənbərɡər/","egress":"/ɪɡrˈes/","egyptology":"/ˌiːdʒəptˈɑːlədʒiː/","eigen":"/ˈaɪɡən/","eigenvalue":"/ˈaɪɡənvˌæljuː/","eigenvalues":"/ˈaɪɡənvˌæljuːz/","eliminate":"/ɪlˈɪmənˌeɪt/","eliminated":"/ɪlˈɪmənˌeɪtəd/","eliminates":"/ɪlˈɪmənˌeɪts/","eliminating":"/ɪlˈɪmənˌeɪtɪŋ/","elimination":"/ɪlˌɪmənˈeɪʃən/","eliminations":"/ɪlˌɪmɪnˈeɪʃənz/","ellenbogen":"/ˈelɪnbəɡən/","elocution":"/ˌeləkjˈuːʃən/","elocutions":"/ˌeləkjˈuːʃənz/","elvis":"/ˈelvɪs/","emanate":"/ˈemənˌeɪt/","emanated":"/ˈemənˌeɪtɪd/","emanates":"/ˈeməneɪts/","emanating":"/ˈemənˌeɪtɪŋ/","emanation":"/ˌemənˈeɪʃən/","emanations":"/ˌemənˈeɪʃənz/","embraced":"/embrˈeɪst/","embryology":"/ˌembriːˈɑːlədʒiː/","emeraude":"/ˈemərˌaʊd/","emergence":"/ɪmˈɜːrdʒəns/","emergencies":"/ɪmˈɜːrdʒənsiːz/","emergency":"/ɪmˈɜːrdʒənsiː/","emergent":"/ɪmˈɜːrdʒənt/","emmott":"/ˈemət/","emogene":"/ˈeməɡiːn/","emoticon":"/əmˈoʊtəkˌɑːn/","emotionalism":"/ɪmˈoʊʃənəlˌɪzəm/","emotionally":"/ɪmˈoʊʃnəliː/","emotions":"/ɪmˈoʊʃənz/","emotive":"/ɪmˈoʊtɪv/","empress":"/ˈempres/","enact":"/ɪnˈækt/","enacted":"/enˈæktəd/","enacting":"/enˈæktɪŋ/","enactment":"/enˈæktmənt/","enactments":"/ˌenˈæktmənts/","enacts":"/ɪnˈækts/","endoscopic":"/ˌendoʊskˈɑːpɪk/","endothermic":"/ˌendoʊθˈɜːrmɪk/","energen":"/ˈenərdʒˌen/","enforced":"/enfˈɔːrst/","engen":"/ˈeŋən/","engender":"/endʒˈendər/","engendered":"/endʒˈendərd/","engenders":"/ˈeŋɡəndərz/","engram":"/ˈenɡræm/","enhanced":"/enhˈænst/","enomoto":"/ɪnoʊmˈoʊtoʊ/","ensconced":"/ɪnskˈɑːnst/","ensign":"/ˈensən/","enterividous":"/ˌentərˈɪvɪdəs/","enterology":"/ˌentərˈɑːlədʒiː/","enticed":"/ɪntˈaɪst/","entomologist":"/ˌentəmˈɑːlədʒəst/","entomology":"/ˌentəmˈɑːlədʒiː/","entranced":"/ɪntrˈænst/","enviropact":"/ɪnvˈaɪroʊpˌækt/","envisage":"/envˈɪzɪdʒ/","envisaged":"/envˈɪzɪdʒd/","envisages":"/envˈɪzɪdʒɪz/","envision":"/envˈɪʒən/","envisioned":"/envˈɪʒənd/","envisioning":"/envˈɪʒənɪŋ/","envisions":"/envˈɪʒənz/","epidemiology":"/ˌepədˌemiːˈɑːlədʒiː/","epigenetic":"/ˌepədʒənˈetɪk/","epigram":"/ˈepəɡrˌæm/","epigrammatic":"/ˌepəɡrəmˈætɪk/","epigraphic":"/ˌepəɡrˈæfɪk/","epilogue":"/ˈepəlˌɔːɡ/","episcopal":"/ɪpˈɪskəpəl/","episcopalian":"/ɪpˌɪskəpˈeɪliːən/","episcopo":"/ɪpɪskˈoʊpoʊ/","epistemology":"/ɪpˌɪstəmˈɑːlədʒiː/","epogen":"/ˈepədʒen/","eppel":"/ˈepəl/","equable":"/ˈekwəbəl/","equal":"/ˈiːkwəl/","equaled":"/ˈiːkwəld/","equaling":"/ˈiːkwəlɪŋ/","equality":"/ɪkwˈɑːlətiː/","equalization":"/ˌiːkwəlɪzˈeɪʃən/","equalize":"/ˈiːkwəlˌaɪz/","equalized":"/ˈiːkwəlˌaɪzd/","equalizer":"/ˈiːkwəlˌaɪzər/","equalizes":"/ˈiːkwəlˌaɪzɪz/","equalizing":"/ˈiːkwəlˌaɪzɪŋ/","equally":"/ˈiːkwəliː/","equals":"/ˈiːkwəlz/","equanimity":"/ˌiːkwənˈɪmɪtiː/","equate":"/ɪkwˈeɪt/","equated":"/ɪkwˈeɪtɪd/","equates":"/ɪkwˈeɪts/","equating":"/ɪkwˈeɪtɪŋ/","equation":"/ɪkwˈeɪʒən/","equations":"/ɪkwˈeɪʒənz/","equator":"/ɪkwˈeɪtər/","equatorial":"/ˌiːkwətˈɔːriːəl/","equators":"/ɪkwˈeɪtərz/","equestrian":"/ɪkwˈestriːən/","equiangular":"/ˌiːkwəˈæŋɡjələr/","equibank":"/ˈekwəbˌæŋk/","equicor":"/ˈekwˌɪkˌɔːr/","equifax":"/ˈekwɪfˌæks/","equilibria":"/ˌiːkwəlˈɪbriːə/","equilibrium":"/ˌiːkwəlˈɪbriːəm/","equilink":"/ˈekwəlˌɪŋk/","equimark":"/ˈekwɪmˌɑːrk/","equine":"/ˈiːkwaɪn/","equinox":"/ˈiːkwənˌɑːks/","equion":"/ˈekwiːɑːn/","equip":"/ɪkwˈɪp/","equipment":"/ɪkwˈɪpmənt/","equipments":"/ɪkwˈɪpmənts/","equipped":"/ɪkwˈɪpt/","equipping":"/ɪkwˈɪpɪŋ/","equips":"/ɪkwˈɪps/","equitable":"/ˈekwətəbəl/","equitably":"/ˈekwɪtəbliː/","equitas":"/ˈekwətəs/","equitation":"/ˌekwətˈeɪʃən/","equitec":"/ˈekwətˌek/","equitex":"/ˈekwətˌeks/","equiticorp":"/ˈekwɪtiːkˌɔːrp/","equities":"/ˈekwətiːz/","equity":"/ˈekwətiː/","equivalence":"/ɪkwˈɪvələns/","equivalency":"/ɪkwˈɪvələnsiː/","equivalent":"/ɪkwˈɪvələnt/","equivalents":"/ɪkwˈɪvələnts/","equivocal":"/ɪkwˈɪvəkəl/","equivocate":"/ɪkwˈɪvəkˌeɪt/","equivocating":"/ɪkwˈɪvəkˌeɪtɪŋ/","equivocation":"/ɪkwɪvəkˈeɪʃən/","erlangen":"/ərlˈæŋɡən/","erpelding":"/ˈɜːrpɪldɪŋ/","erupted":"/ɪrˈʌptəd/","erupting":"/ɪrˈʌptɪŋ/","eruption":"/ɪrˈʌpʃən/","eruptions":"/ɪrˈʌpʃənz/","eruptive":"/ɪrˈʌptɪv/","erupts":"/ɪrˈʌpts/","especial":"/əspˈeʃəl/","especially":"/əspˈeʃliː/","espectador":"/espˌektədˈɔːr/","espeland":"/ˈespɪlənd/","espresso":"/ˌesprˈesoʊ/","estrogen":"/ˈestrədʒən/","estrogens":"/ˈestrədʒɪnz/","ethnographic":"/ˌeθnəɡrˈæfɪk/","ethnology":"/eθnˈɑːlədʒiː/","ethology":"/ɪθˈɑːlədʒiː/","etiologies":"/ˌiːtiːˈɑːlədʒiːz/","etiology":"/ˌiːtiːˈɑːlədʒiː/","etymological":"/ˌetəməlˈɑːdʒəkəl/","etymology":"/ˌetəmˈɑːlədʒiː/","eugene":"/juːdʒˈiːn/","eugenia":"/jˌuːdʒˈiːniːə/","eugenic":"/juːdʒˈenɪk/","eugenics":"/juːdʒˈenɪks/","eugenie":"/jˌuːdʒˈiːniː/","eugenio":"/jˌuːdʒˈiːniːoʊ/","eulogies":"/jˈuːlədʒiːz/","eulogize":"/jˈuːlədʒˌaɪz/","eulogized":"/jˈuːlədʒˌaɪzd/","eulogy":"/jˈuːlədʒiː/","euphony":"/jˈuːfəniː/","eusebio":"/jˌuːsˈiːbiːoʊ/","evald":"/ˈevəld/","evaleen":"/ˈevəlˌiːn/"},"irregular_lemmas":{"went":"go","gone":"go","goes":"go","going":"go","was":"be","were":"be","been":"be","being":"be","had":"have","has":"have","having":"have","did":"do","does":"do","done":"do","doing":"do","wrote":"write","written":"write","writing":"write","spoke":"speak","spoken":"speak","speaking":"speak","took":"take","taken":"take","taking":"take","gave":"give","given":"give","giving":"give","saw":"see","seen":"see","seeing":"see","knew":"know","known":"know","knowing":"know","thought":"think","thinking":"think","brought":"bring","bringing":"bring","bought":"buy","buying":"buy","taught":"teach","teaching":"teach","caught":"catch","catching":"catch","sought":"seek","seeking":"seek","fought":"fight","fighting":"fight","built":"build","building":"build","sent":"send","sending":"send","spent":"spend","spending":"spend","lent":"lend","lending":"lend","meant":"mean","meaning":"mean","kept":"keep","keeping":"keep","slept":"sleep","sleeping":"sleep","felt":"feel","feeling":"feel","left":"leave","leaving":"leave","lost":"lose","losing":"lose","found":"find","finding":"find","held":"hold","holding":"hold","told":"tell","telling":"tell","sold":"sell","selling":"sell","led":"lead","leading":"lead","met":"meet","meeting":"meet","won":"win","winning":"win","ran":"run","running":"run","began":"begin","begun":"begin","beginning":"begin","became":"become","becoming":"become","came":"come","coming":"come","overcame":"overcome","overcoming":"overcome","broke":"break","broken":"break","breaking":"break","chose":"choose","chosen":"choose","choosing":"choose","drove":"drive","driven":"drive","driving":"drive","ate":"eat","eaten":"eat","eating":"eat","fell":"fall","fallen":"fall","falling":"fall","flew":"fly","flown":"fly","flying":"fly","forgot":"forget","forgotten":"forget","forgetting":"forget","forgave":"forgive","forgiven":"forgive","froze":"freeze","frozen":"freeze","grew":"grow","grown":"grow","growing":"grow","hid":"hide","hidden":"hide","hiding":"hide","rode":"ride","ridden":"ride","riding":"ride","rose":"rise","risen":"rise","rising":"rise","shook":"shake","shaken":"shake","shaking":"shake","showed":"show","shown":"show","showing":"show","stole":"steal","stolen":"steal","stealing":"steal","threw":"throw","thrown":"throw","throwing":"throw","wore":"wear","worn":"wear","wearing":"wear","understood":"understand","understanding":"understand","children":"child","men":"man","women":"woman","mice":"mouse","teeth":"tooth","feet":"foot","phenomena":"phenomenon","criteria":"criterion","analyses":"analysis","hypotheses":"hypothesis","theses":"thesis","crises":"crisis","matrices":"matrix","indices":"index"},"prefixes":{"trans":"tiền tố: vượt qua, chuyển đổi (across/beyond)","inter":"tiền tố: giữa các bên, liên kết (between/among)","intra":"tiền tố: bên trong, nội bộ (within)","super":"tiền tố: siêu, vượt trội (above/beyond)","hyper":"tiền tố: quá mức, siêu (over/excessive)","under":"tiền tố: bên dưới, chưa đủ (below)","over":"tiền tố: quá mức, phía trên (excessive/above)","anti":"tiền tố: chống lại, kháng (against)","auto":"tiền tố: tự động, bản thân (self)","tele":"tiền tố: từ xa (distant)","micro":"tiền tố: vi mô, siêu nhỏ (small)","macro":"tiền tố: vĩ mô, rộng lớn (large)","multi":"tiền tố: đa, nhiều (many)","poly":"tiền tố: đa dạng, nhiều (many)","mono":"tiền tố: đơn, một (single/one)","counter":"tiền tố: đối kháng, ngược lại (against)","circum":"tiền tố: vòng quanh (around)","pre":"tiền tố: trước (before)","post":"tiền tố: sau (after)","pro":"tiền tố: hướng về phía trước / ủng hộ (forward/for)","sub":"tiền tố: bên dưới, phụ (under)","syn":"tiền tố: đồng thời, cùng nhau (together)","sym":"tiền tố: đồng bộ, cùng nhau (together)","con":"tiền tố: cùng nhau, tập hợp (together/with)","com":"tiền tố: cùng nhau, kết hợp (together/with)","col":"tiền tố: cùng nhau, liên kết (together)","cor":"tiền tố: cùng nhau, tương ứng (together)","dis":"tiền tố: không, tách rời, ngược lại (apart/not)","mis":"tiền tố: sai, nhầm lẫn (wrongly)","non":"tiền tố: không (not)","out":"tiền tố: vượt ra ngoài (surpassing/external)","un":"tiền tố: không, ngược lại (not/reverse)","re":"tiền tố: làm lại / quay lại (again/back)","in":"tiền tố: vào trong / không (in/not)","im":"tiền tố: vào trong / không (in/not)","il":"tiền tố: không (not)","ir":"tiền tố: không (not)","de":"tiền tố: giảm xuống, loại bỏ, đảo ngược (down/remove)","ex":"tiền tố: đưa ra ngoài, cựu (out/former)","en":"tiền tố: làm cho trở thành (cause to be)","em":"tiền tố: đặt vào, làm cho (put into)","co":"tiền tố: cùng nhau, đồng (together)","bi":"tiền tố: hai, đôi (two)"},"roots":{"spect":"gốc: nhìn, quan sát (look/see)","spec":"gốc: nhìn, đặc tính (look/kind)","spic":"gốc: nhìn, thấy rõ (look)","port":"gốc: mang, vận chuyển (carry)","struct":"gốc: xây dựng, kết cấu (build)","dict":"gốc: nói, tuyên bố (say/speak)","scrib":"gốc: viết, ghi chép (write)","script":"gốc: văn bản, chữ viết (write)","graph":"gốc: viết, biểu đồ, ghi chép (write/draw)","gram":"gốc: bản ghi, chữ viết (written/record)","phon":"gốc: âm thanh, giọng nói (sound)","log":"gốc: lời nói, ngành học, logic (word/study)","bio":"gốc: sự sống, sinh học (life)","chron":"gốc: thời gian (time)","geo":"gốc: trái đất, địa lý (earth)","therm":"gốc: nhiệt độ, sức nóng (heat)","psych":"gốc: tâm lý, tinh thần (mind/soul)","scop":"gốc: quan sát, kính ngắm (see/examine)","vid":"gốc: nhìn, hình ảnh (see)","vis":"gốc: nhìn, tầm nhìn (see)","aud":"gốc: nghe, thính giác (hear)","voc":"gốc: giọng nói, kêu gọi (voice/call)","vok":"gốc: kêu gọi, gợi lên (call)","fac":"gốc: làm, chế tạo (make/do)","fect":"gốc: tạo ra, tác động (make/do)","fic":"gốc: tạo ra, làm nên (make)","act":"gốc: hành động, thực hiện (drive/do)","mob":"gốc: di chuyển (move)","mot":"gốc: chuyển động (move)","mov":"gốc: dịch chuyển (move)","grad":"gốc: bước đi, cấp độ (step)","gress":"gốc: tiến bước (step/go)","ced":"gốc: đi, nhường (go/yield)","ceed":"gốc: tiến lên, đi tiếp (go)","cess":"gốc: đi, tiến trình (go)","rupt":"gốc: phá vỡ, bùng nổ (break/burst)","tract":"gốc: kéo, thu hút (pull/draw)","press":"gốc: ấn, ép, thúc đẩy (press)","pel":"gốc: đẩy, thúc giục (drive/push)","puls":"gốc: nhịp đẩy, xung lực (push/beat)","clud":"gốc: đóng, khép lại (close/shut)","clus":"gốc: đóng, bao gồm (close/shut)","cred":"gốc: tin tưởng (believe/trust)","cogn":"gốc: nhận thức, biết (know)","sci":"gốc: hiểu biết, khoa học (know)","mem":"gốc: trí nhớ, ghi nhớ (mindful/remember)","temp":"gốc: thời gian, nhịp độ (time)","loc":"gốc: vị trí, địa điểm (place)","equ":"gốc: bằng nhau, cân bằng (equal)","val":"gốc: giá trị, sức mạnh (worth/strong)","viv":"gốc: sống, sinh động (live)","vit":"gốc: sự sống, thiết yếu (life)","nat":"gốc: sinh ra, tự nhiên (born)","gen":"gốc: sinh ra, nguồn gốc, loại (birth/produce)","form":"gốc: hình dáng, cấu tạo (shape)","part":"gốc: phần, chia tách (piece/divide)","serv":"gốc: giữ gìn, phục vụ (save/keep)","sign":"gốc: dấu hiệu, ký hiệu (mark)","term":"gốc: giới hạn, kỳ hạn (end/limit)","urb":"gốc: đô thị, thành phố (city)","vac":"gốc: trống rỗng (empty)","volv":"gốc: cuộn, xoay quanh (roll/turn)","volut":"gốc: xoay chuyển, tiến hóa (roll/turn)","mit":"gốc: gửi đi, truyền dẫn (send)","miss":"gốc: gửi đi, nhiệm vụ (send)","duc":"gốc: dẫn dắt (lead)","duct":"gốc: dẫn truyền, ống dẫn (lead)","fer":"gốc: mang, truyền tải (bear/carry)","ject":"gốc: ném, phóng ra (throw)","vert":"gốc: xoay, chuyển hướng (turn)","vers":"gốc: xoay chiều, đa dạng (turn)","tend":"gốc: căng ra, hướng tới (stretch)","tens":"gốc: độ căng, áp lực (stretch)","pend":"gốc: treo, phụ thuộc (hang)","pens":"gốc: cân nhắc, chi trả (weigh/pay)","ceiv":"gốc: nắm bắt, tiếp nhận (take/receive)","cept":"gốc: tiếp nhận, khái niệm (take/hold)","tain":"gốc: giữ, duy trì (hold)","ten":"gốc: nắm giữ, duy trì (hold)","tin":"gốc: giữ, tiếp tục (hold)","sist":"gốc: đứng vững (stand)","stat":"gốc: đứng, trạng thái (stand)","stit":"gốc: thiết lập, đứng (set up/stand)","pos":"gốc: đặt, để, vị trí (put/place)","pon":"gốc: đặt, thành phần (place/put)","path":"gốc: cảm xúc, bệnh lý (feeling/suffering)","phil":"gốc: yêu thích (love)","phob":"gốc: nỗi sợ (fear)","tech":"gốc: kỹ thuật, nghệ thuật (skill/art)","theo":"gốc: thần học, tôn giáo (god)","astr":"gốc: ngôi sao, vũ trụ (star)","cosm":"gốc: vũ trụ, thế giới (universe/order)","dem":"gốc: nhân dân, dân số (people)","crat":"gốc: quyền lực, cai trị (rule/power)","arch":"gốc: người đứng đầu, cổ đại (chief/first)","norm":"gốc: quy chuẩn, tiêu chuẩn (rule/pattern)","fin":"gốc: kết thúc, giới hạn (end/boundary)","flu":"gốc: dòng chảy (flow)","flux":"gốc: sự biến động, tuôn chảy (flow)","her":"gốc: gắn kết, bám dính (stick)","hes":"gốc: gắn chặt, kết dính (stick)","leg":"gốc: luật pháp, đọc, chọn (law/read)","lect":"gốc: chọn lọc, đọc (choose/read)","lig":"gốc: ràng buộc, chọn lựa (bind/choose)","lum":"gốc: ánh sáng (light)","luc":"gốc: sáng tỏ, minh bạch (light/clear)","magn":"gốc: to lớn, vĩ đại (great/large)","man":"gốc: bàn tay, thao tác (hand)","mand":"gốc: mệnh lệnh, ủy thác (order/entrust)","medi":"gốc: ở giữa, trung gian (middle)","migr":"gốc: di cư, dịch chuyển (move/wander)","min":"gốc: nhỏ, thu nhỏ (small/less)","mod":"gốc: phương thức, điều chỉnh (measure/manner)","mort":"gốc: cái chết, hữu hạn (death)","mut":"gốc: biến đổi, thay đổi (change)","nov":"gốc: mới mẻ, đổi mới (new)","numer":"gốc: con số, đếm (number)","oper":"gốc: hoạt động, vận hành (work)","opt":"gốc: lựa chọn / thị giác (choose/eye)","ord":"gốc: thứ tự, sắp xếp (order)","ped":"gốc: bàn chân / giáo dục (foot/child)","plic":"gốc: gấp lại, đan xen (fold)","plex":"gốc: đan kết, phức hợp (weave/plaited)","pol":"gốc: thành phố, chính trị (city/state)","pop":"gốc: dân chúng, phổ biến (people)","potent":"gốc: tiềm năng, quyền lực (powerful)","prim":"gốc: đầu tiên, nguyên thủy (first)","prob":"gốc: chứng minh, thử nghiệm (prove/test)","put":"gốc: suy tính, tính toán (think/reckon)","quer":"gốc: tìm kiếm, hỏi (seek/ask)","quest":"gốc: tìm kiếm, truy vấn (seek/ask)","quir":"gốc: thu thập, tìm hỏi (seek)","quis":"gốc: đạt được, truy vấn (seek)","rad":"gốc: tia, gốc rễ (ray/root)","rect":"gốc: thẳng, đúng đắn (straight/right)","reg":"gốc: quy tắc, điều hành (rule/guide)","rid":"gốc: cười (laugh)","ris":"gốc: tiếng cười (laugh)","rog":"gốc: hỏi, yêu cầu (ask)","sacr":"gốc: thiêng liêng (sacred)","sanct":"gốc: thánh thiện, phê chuẩn (holy)","sat":"gốc: đủ, thỏa mãn (enough)","sec":"gốc: cắt, phân đoạn (cut)","sect":"gốc: cắt chia, khu vực (cut)","sed":"gốc: ngồi, lắng đọng (sit/settle)","sess":"gốc: phiên họp, ngồi (sit)","sid":"gốc: ngồi, cư trú (sit)","sens":"gốc: cảm giác, ý nghĩa (feel/sense)","sent":"gốc: cảm nhận, ý kiến (feel)","sequ":"gốc: theo sau, chuỗi (follow)","secut":"gốc: nối tiếp, thực thi (follow)","simil":"gốc: tương tự, giống nhau (like/same)","simul":"gốc: mô phỏng, đồng thời (together/like)","soci":"gốc: xã hội, đồng hành (companion)","sol":"gốc: đơn độc / mặt trời (alone/sun)","solv":"gốc: giải quyết, hòa tan (loosen)","solut":"gốc: giải pháp, tháo gỡ (loosen)","son":"gốc: âm thanh (sound)","soph":"gốc: trí tuệ, minh triết (wise)","spir":"gốc: hơi thở, tinh thần (breathe)","spond":"gốc: cam kết, phản hồi (pledge/answer)","spons":"gốc: chịu trách nhiệm, đáp lại (pledge/answer)","string":"gốc: buộc chặt, nghiêm ngặt (bind/draw tight)","strict":"gốc: thắt chặt, nghiêm khắc (bind/draw tight)","stru":"gốc: xây dựng, lắp ghép (build)","sum":"gốc: lấy, tổng hợp (take/highest)","sumpt":"gốc: tiêu thụ, giả định (take)","surg":"gốc: trỗi dậy, dâng lên (rise)","tact":"gốc: chạm, tiếp xúc (touch)","tang":"gốc: chạm, hữu hình (touch)","teg":"gốc: che phủ, bảo vệ (cover)","tect":"gốc: che chắn, kiến trúc (cover/roof)","tempor":"gốc: thời gian, tạm thời (time)","terr":"gốc: đất đai, lãnh thổ (earth/land)","test":"gốc: làm chứng, kiểm chứng (witness)","text":"gốc: dệt, văn bản (weave)","the":"gốc: đặt, luận điểm (put/place)","ton":"gốc: âm조, sức căng (tone/stretch)","tort":"gốc: xoắn, bóp méo (twist)","tox":"gốc: độc tố (poison)","trib":"gốc: trao tặng, phân bổ (give/bestow)","trud":"gốc: đẩy vào, xâm nhập (push/thrust)","trus":"gốc: đẩy, xâm lấn (push/thrust)","turb":"gốc: hỗn loạn, khuấy động (agitate)","ultim":"gốc: cuối cùng, tối thượng (last)","umbr":"gốc: bóng tối, che bóng (shadow)","uni":"gốc: một, thống nhất (one)","ut":"gốc: sử dụng, hữu ích (use)","us":"gốc: dùng, thông dụng (use)","vad":"gốc: đi, tiến vào (go)","vas":"gốc: tràn qua, xâm nhập (go)","ven":"gốc: đến, tập hợp (come)","vent":"gốc: đến, sự kiện (come)","ver":"gốc: sự thật, xác thực (true)","verb":"gốc: từ ngữ, lời nói (word)","vest":"gốc: trang phục, trao quyền (garment)","vi":"gốc: con đường, lộ trình (way/road)","vict":"gốc: chiến thắng, chinh phục (conquer)","vinc":"gốc: thuyết phục, thắng (conquer)","vir":"gốc: sức mạnh, con người (man/worth)","void":"gốc: trống không, vô hiệu (empty)","vol":"gốc: ý chí, tự nguyện (wish/will)","vor":"gốc: ăn, ngấu nghiến (devour)","ulg":"gốc: đám đông, phổ thông (common people)","vulner":"gốc: tổn thương (wound)"},"suffixes":{"tion":"hậu tố (n.): sự việc, quá trình, trạng thái","sion":"hậu tố (n.): sự việc, trạng thái","ment":"hậu tố (n.): kết quả / hành động","ness":"hậu tố (n.): phẩm chất, trạng thái","ity":"hậu tố (n.): tính chất, năng lực","ty":"hậu tố (n.): trạng thái, chất lượng","ance":"hậu tố (n.): trạng thái, chất lượng","ence":"hậu tố (n.): trạng thái, quá trình","acy":"hậu tố (n.): trạng thái, phẩm chất","ship":"hậu tố (n.): tư cách, mối quan hệ, kỹ năng","hood":"hậu tố (n.): thời kỳ, trạng thái, tập thể","dom":"hậu tố (n.): lãnh địa, trạng thái","able":"hậu tố (adj.): có thể làm được","ible":"hậu tố (adj.): có khả năng","ious":"hậu tố (adj.): mang đầy tính chất","eous":"hậu tố (adj.): có bản chất","ous":"hậu tố (adj.): có tính chất","ive":"hậu tố (adj.): có xu hướng / bản chất","ful":"hậu tố (adj.): đầy, nhiều","less":"hậu tố (adj.): không có","ize":"hậu tố (v.): làm cho trở thành, hiện đại hóa","ise":"hậu tố (v.): làm cho trở thành","ify":"hậu tố (v.): hóa, làm cho trở nên","ate":"hậu tố (v./adj.): thực hiện / có tính chất","en":"hậu tố (v./adj.): làm cho / làm bằng","ly":"hậu tố (adv.): một cách...","ward":"hậu tố (adv./adj.): hướng về phía","wise":"hậu tố (adv.): xét về mặt, theo chiều","er":"hậu tố (n./adj.): người/vật thực hiện; hơn","or":"hậu tố (n.): người/thiết bị thực hiện","ist":"hậu tố (n.): chuyên gia / người theo học thuyết","ism":"hậu tố (n.): chủ nghĩa, học thuyết, hiện tượng","al":"hậu tố (adj./n.): thuộc về / hành động","ic":"hậu tố (adj./n.): thuộc về lĩnh vực","ical":"hậu tố (adj.): thuộc về, mang tính","ary":"hậu tố (adj./n.): liên quan đến, nơi chốn","ory":"hậu tố (adj./n.): có chức năng, nơi chốn","ant":"hậu tố (adj./n.): mang tính / tác nhân","ent":"hậu tố (adj./n.): thực hiện / trạng thái","ure":"hậu tố (n.): hành động, kết quả, quy trình"}};
+
+    function lemmatizeOfflineWord(rawWord) {
+      const w = rawWord.toLowerCase().trim();
+      if (!w) return w;
+      const irr = EMBEDDED_NLP_BUNDLE.irregular_lemmas[w];
+      if (irr) return irr;
+      const dict = EMBEDDED_NLP_BUNDLE.offline_dict;
+      const cmu = EMBEDDED_NLP_BUNDLE.cmudict_ipa;
+      const isKnown = (cand) => Boolean(dict[cand] || cmu[cand]);
+
+      if (isKnown(w) && !w.endsWith('ed') && !w.endsWith('ing') && !w.endsWith('s')) {
+        return w;
+      }
+      // Morphy suffix detachment rules
+      const candidates = [];
+      if (w.endsWith('ies') && w.length > 4) candidates.push(w.slice(0, -3) + 'y');
+      if (w.endsWith('ied') && w.length > 4) candidates.push(w.slice(0, -3) + 'y');
+      if (w.endsWith('ves') && w.length > 4) {
+        candidates.push(w.slice(0, -3) + 'f');
+        candidates.push(w.slice(0, -3) + 'fe');
+      }
+      if (w.endsWith('ing') && w.length > 5) {
+        const stem = w.slice(0, -3);
+        candidates.push(stem);
+        candidates.push(stem + 'e');
+        if (stem.length >= 3 && stem[stem.length - 1] === stem[stem.length - 2]) {
+          candidates.push(stem.slice(0, -1));
+        }
+      }
+      if (w.endsWith('ed') && w.length > 4) {
+        const stem = w.slice(0, -2);
+        candidates.push(stem);
+        candidates.push(w.slice(0, -1)); // e.g. transformed -> transform, tokenized -> tokenize
+        if (stem.length >= 3 && stem[stem.length - 1] === stem[stem.length - 2]) {
+          candidates.push(stem.slice(0, -1));
+        }
+      }
+      if (w.endsWith('es') && w.length > 4) {
+        candidates.push(w.slice(0, -2));
+        candidates.push(w.slice(0, -1));
+      }
+      if (w.endsWith('s') && !w.endsWith('ss') && !w.endsWith('us') && !w.endsWith('is') && w.length > 3) {
+        candidates.push(w.slice(0, -1));
+      }
+      if (w.endsWith('ly') && w.length > 5) {
+        candidates.push(w.slice(0, -2));
+      }
+
+      for (const c of candidates) {
+        if (isKnown(c)) return c;
+      }
+      return candidates[0] || w;
+    }
+
+    function getOfflineIpa(word, lemma) {
+      const w = word.toLowerCase();
+      const l = (lemma || w).toLowerCase();
+      const dict = EMBEDDED_NLP_BUNDLE.offline_dict;
+      const cmu = EMBEDDED_NLP_BUNDLE.cmudict_ipa;
+
+      if (dict[w] && dict[w].ipa) return dict[w].ipa;
+      if (cmu[w]) return cmu[w];
+
+      const baseEntry = (dict[l] && dict[l].ipa) || cmu[l];
+      if (baseEntry) {
+        const core = baseEntry.replace(/^\/|\/$/g, '');
+        if (w === l + 'ing') return `/${core}ɪŋ/`;
+        if (w === l + 'ed' || w === l + 'd') return `/${core}d/`;
+        if (w === l + 's' || w === l + 'es') return `/${core}z/`;
+        if (w === l + 'ly') return `/${core}liː/`;
+        return baseEntry;
+      }
+      return fallbackG2pIpa(w);
+    }
+
+    function decomposeOfflineMorphology(word, lemma) {
+      const lower = word.toLowerCase();
+      const targetLemma = (lemma || lower).toLowerCase();
+      const rads = [];
+      const seen = new Set();
+
+      const prefixes = Object.entries(EMBEDDED_NLP_BUNDLE.prefixes).sort((a, b) => b[0].length - a[0].length);
+      const roots = Object.entries(EMBEDDED_NLP_BUNDLE.roots).sort((a, b) => b[0].length - a[0].length);
+      const suffixes = Object.entries(EMBEDDED_NLP_BUNDLE.suffixes).sort((a, b) => b[0].length - a[0].length);
+
+      for (const [pref, meaning] of prefixes) {
+        if (lower.startsWith(pref) && lower.length > pref.length + 2) {
+          const sym = `${pref}-`;
+          seen.add(sym);
+          rads.push({ symbol: sym, meaning });
+          break;
+        }
+      }
+
+      let matchedRoots = 0;
+      for (const [root, meaning] of roots) {
+        if (lower.includes(root) || targetLemma.includes(root)) {
+          const sym = `-${root}-`;
+          if (!seen.has(sym)) {
+            seen.add(sym);
+            rads.push({ symbol: sym, meaning });
+            matchedRoots++;
+            if (matchedRoots >= 2) break;
+          }
+        }
+      }
+
+      for (const [suf, meaning] of suffixes) {
+        if (lower.endsWith(suf) && lower.length > suf.length + 2) {
+          const sym = `-${suf}`;
+          if (!seen.has(sym)) {
+            seen.add(sym);
+            rads.push({ symbol: sym, meaning });
+          }
+          break;
+        }
+      }
+
+      if (matchedRoots === 0) {
+        const stem = targetLemma.length <= 6 ? targetLemma : targetLemma.slice(0, 5);
+        const sym = `-${stem}-`;
+        if (!seen.has(sym)) {
+          rads.unshift({ symbol: sym, meaning: `gốc từ vựng (${targetLemma})` });
+        }
+      }
+      return rads;
+    }
+
+    function inferOfflinePos(word, radicals) {
+      const w = word.toLowerCase();
+      if (w.endsWith('tion') || w.endsWith('sion') || w.endsWith('ment') || w.endsWith('ness') || w.endsWith('ity') || w.endsWith('ance') || w.endsWith('ence')) return 'n. - danh từ';
+      if (w.endsWith('able') || w.endsWith('ible') || w.endsWith('ous') || w.endsWith('ive') || w.endsWith('ful') || w.endsWith('less') || w.endsWith('ic') || w.endsWith('al')) return 'adj. - tính từ';
+      if (w.endsWith('ly')) return 'adv. - trạng từ';
+      if (w.endsWith('ize') || w.endsWith('ify') || w.endsWith('ate') || w.endsWith('ed') || w.endsWith('ing')) return 'v. - động từ';
+      return 'từ vựng';
+    }
+
+    function synthesizeOfflineVietnamese(word, lemma, radicals) {
+      const dict = EMBEDDED_NLP_BUNDLE.offline_dict;
+      const w = word.toLowerCase();
+      const l = (lemma || w).toLowerCase();
+      if (dict[w] && dict[w].vi) return dict[w].vi;
+      if (dict[l] && dict[l].vi) return dict[l].vi;
+
+      // Check persistent localStorage dictionary cache
+      try {
+        const cached = localStorage.getItem('offline_vi_' + w) || localStorage.getItem('offline_vi_' + l);
+        if (cached) return cached;
+      } catch (_) {}
+
+      // Synthesize Vietnamese meaning from Greco-Latin roots & affixes when 100% offline
+      const posLabel = inferOfflinePos(w, radicals);
+      const meaningfulRads = radicals
+        .map(r => r.meaning.replace(/^(tiền tố|gốc|hậu tố[^:]*):\s*/i, '').split('(')[0].trim())
+        .filter(Boolean);
+      if (meaningfulRads.length > 0) {
+        return `(${posLabel}) ${meaningfulRads.join(' + ')}`;
+      }
+      return `(${posLabel}) từ vựng gốc "${l}"`;
+    }
+
+    function analyzeParagraphOfflineCpu(rawText) {
+      const t0 = performance.now();
+      const sentences = rawText
+        .replace(/\s+/g, ' ')
+        .trim()
+        .split(/(?<=[.!?])\s+/)
+        .filter(Boolean);
+
+      const seen = new Set();
+      const tokens = [];
+
+      for (const sent of sentences) {
+        const matches = sent.match(/[a-zA-Z]+(?:-[a-zA-Z]+)*/g) || [];
+        for (const rawWord of matches) {
+          const lower = rawWord.toLowerCase();
+          if (lower.length < 3 || STOP_WORDS.has(lower) || seen.has(lower)) continue;
+          const lemma = lemmatizeOfflineWord(lower);
+          if (STOP_WORDS.has(lemma)) continue;
+          seen.add(lower);
+
+          const radicals = decomposeOfflineMorphology(lower, lemma);
+          const phonetic = getOfflineIpa(lower, lemma);
+          const translation = synthesizeOfflineVietnamese(lower, lemma, radicals);
+          const cloze = sent.replace(new RegExp(`\\b${rawWord}\\b`, 'i'), '[...]');
+
+          tokens.push({
+            word: lower,
+            lemma,
+            phonetic,
+            audioUrl: '',
+            translation,
+            radicals,
+            context: sent,
+            cloze
+          });
+          if (tokens.length >= 18) break;
+        }
+        if (tokens.length >= 18) break;
+      }
+
+      const elapsedMs = (performance.now() - t0).toFixed(2);
+      return { tokens, elapsedMs, sentenceCount: sentences.length };
+    }
+
+    // Comprehensive Morphological Prefixes, Roots, and Suffixes with Vietnamese explanations
+    const PREFIXES_VI = {
+      'trans': 'tiền tố: vượt qua, chuyển đổi',
+      'inter': 'tiền tố: giữa các bên, liên kết',
+      'super': 'tiền tố: siêu, vượt trội',
+      'under': 'tiền tố: bên dưới, chưa đủ',
+      'over': 'tiền tố: quá mức, vượt qua',
+      'anti': 'tiền tố: chống lại, kháng',
+      'auto': 'tiền tố: tự động, bản thân',
+      'tele': 'tiền tố: từ xa (distant)',
+      'micro': 'tiền tố: vi mô, siêu nhỏ',
+      'multi': 'tiền tố: đa, nhiều',
+      'contra': 'tiền tố: chống lại, ngược lại',
+      'circum': 'tiền tố: xung quanh',
+      'pre': 'tiền tố: trước (before)',
+      'pro': 'tiền tố: tiến về trước / ủng hộ',
+      'sub': 'tiền tố: bên dưới, phụ (under)',
+      'con': 'tiền tố: cùng nhau (together)',
+      'com': 'tiền tố: cùng nhau (together)',
+      'col': 'tiền tố: cùng nhau (together)',
+      'dis': 'tiền tố: không, tách rời',
+      'mis': 'tiền tố: sai, nhầm lẫn',
+      'non': 'tiền tố: không (not)',
+      'out': 'tiền tố: vượt ra ngoài',
+      'un': 'tiền tố: không, ngược lại (not)',
+      're': 'tiền tố: làm lại / quay lại (again)',
+      'in': 'tiền tố: vào trong / không (in/not)',
+      'im': 'tiền tố: vào trong / không (in/not)',
+      'ir': 'tiền tố: không (not)',
+      'il': 'tiền tố: không (not)',
+      'de': 'tiền tố: giảm xuống, tách khỏi',
+      'ex': 'tiền tố: đưa ra ngoài (out)',
+      'en': 'tiền tố: làm cho trở thành',
+      'em': 'tiền tố: đưa vào trạng thái',
+      'ac': 'tiền tố: hướng tới (to/toward)',
+      'ad': 'tiền tố: hướng tới (toward)'
+    };
+
+    const ROOTS_VI = {
+      'spect': 'gốc: nhìn, quan sát (look/see)',
+      'spec': 'gốc: nhìn, đặc tính (look)',
+      'port': 'gốc: mang, vận chuyển (carry)',
+      'struct': 'gốc: xây dựng, kết cấu (build)',
+      'dict': 'gốc: nói, tuyên bố (say/speak)',
+      'scrib': 'gốc: viết, ghi chép (write)',
+      'script': 'gốc: văn bản, chữ viết (write)',
+      'graph': 'gốc: viết, biểu đồ, ghi chép',
+      'gram': 'gốc: bản ghi, chữ viết',
+      'phon': 'gốc: âm thanh, giọng nói (sound)',
+      'log': 'gốc: lời nói, ngành học (study)',
+      'bio': 'gốc: sự sống, sinh học (life)',
+      'chron': 'gốc: thời gian (time)',
+      'geo': 'gốc: trái đất, địa lý (earth)',
+      'therm': 'gốc: nhiệt độ, sức nóng (heat)',
+      'psych': 'gốc: tâm lý, tinh thần (mind)',
+      'scop': 'gốc: quan sát, kính ngắm (see)',
+      'vid': 'gốc: nhìn, hình ảnh (see)',
+      'vis': 'gốc: nhìn, tầm nhìn (see)',
+      'aud': 'gốc: nghe, thính giác (hear)',
+      'voc': 'gốc: giọng nói, kêu gọi (voice)',
+      'fac': 'gốc: làm, chế tạo (make/do)',
+      'fect': 'gốc: tạo ra, tác động (make/do)',
+      'fic': 'gốc: tạo ra, làm nên (make)',
+      'act': 'gốc: hành động, thực hiện (do)',
+      'mob': 'gốc: di chuyển (move)',
+      'mot': 'gốc: chuyển động, thúc đẩy (move)',
+      'mov': 'gốc: dịch chuyển (move)',
+      'grad': 'gốc: bước đi, cấp độ (step)',
+      'gress': 'gốc: tiến bước (step/go)',
+      'ced': 'gốc: đi, nhường (go/yield)',
+      'cess': 'gốc: đi, tiến trình (go)',
+      'rupt': 'gốc: phá vỡ, bùng nổ (break)',
+      'tract': 'gốc: kéo, thu hút (pull/draw)',
+      'press': 'gốc: ấn, ép, thúc đẩy (press)',
+      'pel': 'gốc: đẩy, thúc giục (drive/push)',
+      'puls': 'gốc: nhịp đẩy, xung lực (push)',
+      'clud': 'gốc: đóng, khép lại (close)',
+      'clus': 'gốc: đóng, bao gồm (close)',
+      'cred': 'gốc: tin tưởng (believe)',
+      'cogn': 'gốc: nhận thức, biết (know)',
+      'sci': 'gốc: hiểu biết, tri thức (know)',
+      'mem': 'gốc: trí nhớ, ghi nhớ (mindful)',
+      'temp': 'gốc: thời gian, nhịp độ (time)',
+      'loc': 'gốc: vị trí, địa điểm (place)',
+      'equ': 'gốc: bằng nhau, cân bằng (equal)',
+      'val': 'gốc: giá trị, sức mạnh (worth)',
+      'viv': 'gốc: sống, sinh động (live)',
+      'vit': 'gốc: sự sống, thiết yếu (life)',
+      'nat': 'gốc: sinh ra, tự nhiên (born)',
+      'gen': 'gốc: sinh ra, nguồn gốc (birth/kind)',
+      'form': 'gốc: hình dáng, cấu tạo (shape)',
+      'part': 'gốc: phần, chia tách (piece)',
+      'serv': 'gốc: giữ gìn, phục vụ (keep)',
+      'sign': 'gốc: dấu hiệu, ký hiệu (mark)',
+      'term': 'gốc: giới hạn, kỳ hạn (limit)',
+      'urb': 'gốc: đô thị, thành phố (city)',
+      'vac': 'gốc: trống rỗng (empty)',
+      'volv': 'gốc: cuộn, xoay quanh (roll)',
+      'volut': 'gốc: xoay chuyển, tiến hóa (roll)',
+      'mit': 'gốc: gửi đi, truyền dẫn (send)',
+      'miss': 'gốc: gửi đi, sứ mệnh (send)',
+      'duc': 'gốc: dẫn dắt, giáo dục (lead)',
+      'duct': 'gốc: dẫn truyền (lead)',
+      'fer': 'gốc: mang, truyền tải (carry)',
+      'ject': 'gốc: ném, phóng ra (throw)',
+      'vert': 'gốc: xoay, chuyển hướng (turn)',
+      'vers': 'gốc: xoay chiều, đa dạng (turn)',
+      'tend': 'gốc: căng ra, hướng tới (stretch)',
+      'tens': 'gốc: độ căng, áp lực (stretch)',
+      'pend': 'gốc: treo, phụ thuộc (hang)',
+      'pens': 'gốc: cân nhắc, chi trả (weigh)',
+      'ceiv': 'gốc: nắm bắt, tiếp nhận (take)',
+      'cept': 'gốc: tiếp nhận, khái niệm (take)',
+      'tain': 'gốc: giữ, duy trì (hold)',
+      'ten': 'gốc: nắm giữ, duy trì (hold)',
+      'sist': 'gốc: đứng vững (stand)',
+      'stat': 'gốc: đứng, trạng thái (stand)',
+      'pos': 'gốc: đặt, để, vị trí (put)',
+      'pon': 'gốc: đặt, thành phần (place)',
+      'quir': 'gốc: tìm kiếm, đạt được (seek)',
+      'quis': 'gốc: tìm kiếm, thu nhận (seek)',
+      'intell': 'gốc: hiểu biết, trí tuệ (understand)',
+      'lect': 'gốc: chọn lọc, đọc, hiểu (gather/read)',
+      'leg': 'gốc: đọc, luật lệ (read/law)',
+      'ubiqu': 'gốc: ở khắp mọi nơi (everywhere)',
+      'challeng': 'gốc: thử thách, lời kêu gọi',
+      'art': 'gốc: kỹ năng, nghệ thuật, nhân tạo'
+    };
+
+    const SUFFIXES_VI = {
+      'tion': 'hậu tố (n.): sự việc, quá trình',
+      'sion': 'hậu tố (n.): sự việc, trạng thái',
+      'ment': 'hậu tố (n.): kết quả / hành động',
+      'ness': 'hậu tố (n.): phẩm chất, trạng thái',
+      'ity': 'hậu tố (n.): tính chất, năng lực',
+      'ance': 'hậu tố (n.): trạng thái, chất lượng',
+      'ence': 'hậu tố (n.): trạng thái, quá trình',
+      'able': 'hậu tố (adj.): có thể làm được',
+      'ible': 'hậu tố (adj.): có khả năng',
+      'ious': 'hậu tố (adj.): mang đầy tính chất',
+      'ous': 'hậu tố (adj.): có tính chất',
+      'ive': 'hậu tố (adj.): có xu hướng / bản chất',
+      'ful': 'hậu tố (adj.): đầy, nhiều',
+      'less': 'hậu tố (adj.): không có',
+      'ize': 'hậu tố (v.): làm cho trở thành',
+      'ise': 'hậu tố (v.): làm cho trở thành',
+      'ify': 'hậu tố (v.): hóa, làm cho',
+      'ate': 'hậu tố (v./adj.): thực hiện / có tính',
+      'ly': 'hậu tố (adv.): một cách...',
+      'er': 'hậu tố (n./adj.): người/vật thực hiện',
+      'or': 'hậu tố (n.): người/thiết bị thực hiện',
+      'ist': 'hậu tố (n.): chuyên gia / người theo',
+      'ism': 'hậu tố (n.): chủ nghĩa, học thuyết',
+      'ial': 'hậu tố (adj.): thuộc về',
+      'al': 'hậu tố (adj.): thuộc về',
+      'ic': 'hậu tố (adj.): thuộc về lĩnh vực',
+      'ing': 'hậu tố (v-ing/n.): đang diễn ra / việc'
+    };
+
+    const POS_VI_MAP = {
+      'noun': 'n. - danh từ',
+      'verb': 'v. - động từ',
+      'adjective': 'adj. - tính từ',
+      'adverb': 'adv. - trạng từ',
+      'preposition': 'prep. - giới từ',
+      'conjunction': 'conj. - liên từ',
+      'pronoun': 'pron. - đại từ'
+    };
+
+    function decomposeEnglishMorphology(word) {
+      const lower = word.toLowerCase();
+      const rads = [];
+
+      for (const [pref, meaning] of Object.entries(PREFIXES_VI)) {
+        if (lower.startsWith(pref) && lower.length > pref.length + 2) {
+          rads.push({ symbol: `${pref}-`, meaning });
+          break;
+        }
+      }
+
+      for (const [root, meaning] of Object.entries(ROOTS_VI)) {
+        if (lower.includes(root)) {
+          rads.push({ symbol: `-${root}-`, meaning });
+        }
+      }
+
+      for (const [suf, meaning] of Object.entries(SUFFIXES_VI)) {
+        if (lower.endsWith(suf) && lower.length > suf.length + 2) {
+          rads.push({ symbol: `-${suf}`, meaning });
+          break;
+        }
+      }
+
+      if (rads.length === 0) {
+        const stem = getLemmaCandidates(lower).slice(-1)[0] || lower.slice(0, 4);
+        rads.push({ symbol: `${stem}-`, meaning: `gốc từ vựng (${stem})` });
+      }
+      return rads;
+    }
+
+    // Rule-based English Grapheme-to-Phoneme (G2P) IPA transcriber fallback
+    function fallbackG2pIpa(word) {
+      let p = word.toLowerCase();
+      p = p
+        .replace(/tion$/g, 'ʃən')
+        .replace(/sion$/g, 'ʒən')
+        .replace(/ture$/g, 'tʃər')
+        .replace(/cial$/g, 'ʃəl')
+        .replace(/tial$/g, 'ʃəl')
+        .replace(/ious$/g, 'iəs')
+        .replace(/ous$/g, 'əs')
+        .replace(/able$/g, 'əbəl')
+        .replace(/ible$/g, 'ɪbəl')
+        .replace(/ment$/g, 'mənt')
+        .replace(/ness$/g, 'nəs')
+        .replace(/ing$/g, 'ɪŋ')
+        .replace(/ight/g, 'aɪt')
+        .replace(/ough/g, 'oʊ')
+        .replace(/ph/g, 'f')
+        .replace(/sh/g, 'ʃ')
+        .replace(/ch/g, 'tʃ')
+        .replace(/th/g, 'θ')
+        .replace(/qu/g, 'kw')
+        .replace(/ck/g, 'k')
+        .replace(/ee/g, 'iː')
+        .replace(/ea/g, 'iː')
+        .replace(/oo/g, 'uː')
+        .replace(/ou/g, 'aʊ')
+        .replace(/ai/g, 'eɪ')
+        .replace(/ay/g, 'eɪ')
+        .replace(/er$/g, 'ər')
+        .replace(/or$/g, 'ər');
+      return `/${p}/`;
+    }
+
+    function getLemmaCandidates(word) {
+      const w = word.toLowerCase();
+      const candidates = [w];
+      if (w.endsWith('ies') && w.length > 4) candidates.push(w.slice(0, -3) + 'y');
+      if (w.endsWith('es') && w.length > 4) candidates.push(w.slice(0, -2));
+      if (w.endsWith('s') && !w.endsWith('ss') && w.length > 3) candidates.push(w.slice(0, -1));
+      if (w.endsWith('ing') && w.length > 5) {
+        candidates.push(w.slice(0, -3));
+        candidates.push(w.slice(0, -3) + 'e');
+      }
+      if (w.endsWith('ed') && w.length > 4) {
+        candidates.push(w.slice(0, -2));
+        candidates.push(w.slice(0, -1));
+      }
+      return [...new Set(candidates)];
+    }
+
+    // Live lookup from Free Dictionary API (api.dictionaryapi.dev) for exact Oxford/Cambridge IPA & Audio
+    async function fetchDictionaryIpaAndAudio(word) {
+      const candidates = getLemmaCandidates(word);
+      for (const candidate of candidates) {
+        try {
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(candidate)}`);
+          if (!res.ok) continue;
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            const entry = data[0];
+            let ipa = entry.phonetic || '';
+            let audio = '';
+            if (Array.isArray(entry.phonetics)) {
+              for (const p of entry.phonetics) {
+                if (!ipa && p.text) ipa = p.text;
+                if (!audio && p.audio) audio = p.audio;
+              }
+            }
+            let pos = '';
+            let enDef = '';
+            if (Array.isArray(entry.meanings) && entry.meanings.length > 0) {
+              pos = entry.meanings[0].partOfSpeech || '';
+              if (entry.meanings[0].definitions && entry.meanings[0].definitions[0]) {
+                enDef = entry.meanings[0].definitions[0].definition || '';
+              }
+            }
+            if (ipa || audio || pos) {
+              return { ipa, audio, pos, enDef };
+            }
+          }
+        } catch (_) {}
+      }
+      return { ipa: '', audio: '', pos: '', enDef: '' };
+    }
+
+    // Live lookup from Google Translate Dictionary API (client=gtx) for real Vietnamese meanings, POS & Pinyin
+    async function fetchGoogleTranslateVietnamese(word, sourceLang = 'en') {
+      try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=vi&dt=t&dt=bd&dt=rm&q=${encodeURIComponent(word)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+
+        let primaryVi = '';
+        let translit = '';
+        if (Array.isArray(data[0])) {
+          for (const seg of data[0]) {
+            if (seg[0]) primaryVi += seg[0];
+            if (seg[3]) translit = seg[3];
+          }
+        }
+
+        let pos = '';
+        const synonyms = [];
+        if (Array.isArray(data[1]) && data[1].length > 0) {
+          const firstPosBlock = data[1][0];
+          pos = firstPosBlock[0] || '';
+          if (Array.isArray(firstPosBlock[1])) {
+            for (const syn of firstPosBlock[1].slice(0, 3)) {
+              if (syn.toLowerCase() !== primaryVi.toLowerCase()) {
+                synonyms.push(syn);
+              }
+            }
+          }
+        }
+
+        const posVi = POS_VI_MAP[pos] || pos;
+        const fullVi = synonyms.length > 0
+          ? `${primaryVi}; ${synonyms.join(', ')}`
+          : primaryVi;
+
+        return {
+          meaning: posVi ? `(${posVi}) ${fullVi}` : fullVi,
+          rawMeaning: fullVi,
+          pos: posVi,
+          translit
+        };
+      } catch (_) {
+        return { meaning: '', rawMeaning: '', pos: '', translit: '' };
+      }
+    }
+
+    async function analyzeSingleWordLive(word, contextSentence) {
+      const cacheKey = `${currentMode}:${word.toLowerCase()}`;
+      if (wordCache.has(cacheKey)) {
+        return { ...wordCache.get(cacheKey), context: contextSentence };
+      }
+
+      if (currentMode === 'en_vi') {
+        const [dictInfo, viInfo] = await Promise.all([
+          fetchDictionaryIpaAndAudio(word),
+          fetchGoogleTranslateVietnamese(word, 'en')
+        ]);
+
+        const phonetic = dictInfo.ipa || fallbackG2pIpa(word);
+        let translation = viInfo.meaning;
+        if (!translation && dictInfo.enDef) {
+          translation = `(${dictInfo.pos || 'từ vựng'}) ${dictInfo.enDef}`;
+        } else if (!translation) {
+          translation = `(từ vựng) ${word}`;
+        } else if (!viInfo.pos && dictInfo.pos) {
+          const mappedPos = POS_VI_MAP[dictInfo.pos] || dictInfo.pos;
+          translation = `(${mappedPos}) ${viInfo.rawMeaning || translation}`;
+        }
+
+        const tokenObj = {
+          word: word.toLowerCase(),
+          phonetic,
+          audioUrl: dictInfo.audio || '',
+          translation,
+          radicals: decomposeEnglishMorphology(word),
+          context: contextSentence
+        };
+        wordCache.set(cacheKey, tokenObj);
+        return tokenObj;
+      } else {
+        // CJK Mode
+        const viInfo = await fetchGoogleTranslateVietnamese(word, 'auto');
+        const tokenObj = {
+          word,
+          phonetic: viInfo.translit || word,
+          audioUrl: '',
+          translation: viInfo.meaning || `(Hán tự) ${word}`,
+          radicals: Array.from(word).map(ch => ({
+            symbol: ch,
+            meaning: `Thành phần chữ (${ch})`
+          })),
+          context: contextSentence
+        };
+        wordCache.set(cacheKey, tokenObj);
+        return tokenObj;
+      }
+    }
+
+    let savedCards = [];
+    let extractedTokens = [];
+    let selectedTokenWords = new Set();
+    let studyQueue = [];
+    let studyIndex = 0;
+
+    function storageKeyForMode(mode) {
+      return `vocab_anki_cards_${mode}_v2`;
+    }
+
+    function persistCards() {
+      try {
+        localStorage.setItem(storageKeyForMode(currentMode), JSON.stringify(savedCards));
+      } catch (_) {}
+    }
+
+    function initDefaultCardsForMode(mode) {
+      try {
+        const stored = localStorage.getItem(storageKeyForMode(mode));
+        if (stored) {
+          savedCards = JSON.parse(stored);
+          return;
+        }
+      } catch (_) {}
+
+      if (mode === 'en_vi') {
+        savedCards = [
+          {
+            word: 'ubiquitous',
+            phonetic: '/juːˈbɪk.wə.təs/',
+            translation: '(adj. - tính từ) khắp mọi nơi; ở đâu cũng có',
+            radicals: [
+              { symbol: '-ubiqu-', meaning: 'gốc: ở khắp mọi nơi (everywhere)' },
+              { symbol: '-ous', meaning: 'hậu tố (adj.): có tính chất' }
+            ],
+            due: true,
+            interval: 0,
+            context: 'Artificial intelligence is ubiquitous in modern education.'
+          },
+          {
+            word: 'education',
+            phonetic: '/ˌed.jʊˈkeɪ.ʃən/',
+            translation: '(n. - danh từ) sự giáo dục; nền giáo dục',
+            radicals: [
+              { symbol: '-duc-', meaning: 'gốc: dẫn dắt, giáo dục (lead)' },
+              { symbol: '-tion', meaning: 'hậu tố (n.): sự việc, quá trình' }
+            ],
+            due: true,
+            interval: 0,
+            context: 'Artificial intelligence is ubiquitous in modern education.'
+          },
+          {
+            word: 'acquire',
+            phonetic: '/əˈkwaɪər/',
+            translation: '(v. - động từ) đạt được; thu nhận, tiếp thu',
+            radicals: [
+              { symbol: 'ac-', meaning: 'tiền tố: hướng tới (toward)' },
+              { symbol: '-quir-', meaning: 'gốc: tìm kiếm, đạt được (seek)' }
+            ],
+            due: true,
+            interval: 0,
+            context: 'Helping students acquire knowledge.'
+          },
+          {
+            word: 'incredible',
+            phonetic: '/ɪnˈkred.ə.bəl/',
+            translation: '(adj. - tính từ) đáng kinh ngạc; phi thường',
+            radicals: [
+              { symbol: 'in-', meaning: 'tiền tố: vào trong / không (in/not)' },
+              { symbol: '-cred-', meaning: 'gốc: tin tưởng (believe)' },
+              { symbol: '-ible', meaning: 'hậu tố (adj.): có khả năng' }
+            ],
+            due: true,
+            interval: 0,
+            context: 'Overcome incredible challenges.'
+          },
+          {
+            word: 'inspect',
+            phonetic: '/ɪnˈspekt/',
+            translation: '(v. - động từ) kiểm tra, thanh tra, xem xét kỹ',
+            radicals: [
+              { symbol: 'in-', meaning: 'tiền tố: vào trong' },
+              { symbol: '-spect-', meaning: 'gốc: nhìn, quan sát (look)' }
+            ],
+            due: true,
+            interval: 0,
+            context: 'Engineers inspect the structure carefully.'
+          },
+          {
+            word: 'perspective',
+            phonetic: '/pərˈspektɪv/',
+            translation: '(n. - danh từ) góc nhìn, quan điểm, viễn cảnh',
+            radicals: [
+              { symbol: '-spect-', meaning: 'gốc: nhìn, quan sát (look)' },
+              { symbol: '-ive', meaning: 'hậu tố (adj.): có xu hướng / bản chất' }
+            ],
+            due: true,
+            interval: 0,
+            context: 'Analyze global export from a new perspective.'
+          }
+        ];
+      } else {
+        savedCards = [
+          {
+            word: '森林',
+            phonetic: 'sēn lín',
+            translation: '(danh từ) rừng rậm (nhiều cây gỗ hợp lại)',
+            radicals: [{ symbol: '木', meaning: 'Bộ Mộc (cây gỗ)' }],
+            due: true,
+            interval: 0,
+            context: '森林里非常清澈，我们在树下休息。'
+          },
+          {
+            word: '休息',
+            phonetic: 'xiū xī',
+            translation: '(động từ) nghỉ ngơi (người tựa vào cây)',
+            radicals: [
+              { symbol: '亻', meaning: 'Bộ Nhân (người)' },
+              { symbol: '木', meaning: 'Bộ Mộc (cây gỗ)' },
+              { symbol: '心', meaning: 'Bộ Tâm (tâm trí)' }
+            ],
+            due: true,
+            interval: 0,
+            context: '我们在树下休息，思想里充满了感激。'
+          }
+        ];
+      }
+      persistCards();
+    }
+
+    function setLanguageMode(mode) {
+      currentMode = mode;
+      document.getElementById('mode-en-vi').classList.toggle('active', mode === 'en_vi');
+      document.getElementById('mode-cjk').classList.toggle('active', mode === 'cjk');
+      document.getElementById('mode-status-tag').textContent =
+        mode === 'en_vi' ? 'EN ➔ VI • Live Dictionary + IPA' : 'CJK ➔ VI • Live Pinyin + nghĩa Việt';
+
+      document.getElementById('nlp-input').value = mode === 'en_vi'
+        ? 'Artificial intelligence is ubiquitous in modern education, helping students acquire knowledge and overcome incredible challenges.'
+        : '森林里非常清澈，我们在树下休息，思想里充满了感激。';
+
+      initDefaultCardsForMode(mode);
+      updateHeaderBadge();
+      runNlpExtraction();
+    }
+
+    function speakWord(word, audioUrl = '') {
+      if (audioUrl) {
+        const audio = new Audio(audioUrl);
+        audio.play().catch(() => speakFallbackTts(word));
+        return;
+      }
+      speakFallbackTts(word);
+    }
+
+    function speakFallbackTts(word) {
+      const lang = currentMode === 'en_vi' ? 'en-US' : 'zh-CN';
+      if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
+        window.AndroidTTS.speak(word, lang);
+        return;
+      }
+      if (!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(word);
+      utter.lang = lang;
+      utter.rate = 0.92;
+      window.speechSynthesis.speak(utter);
+    }
+
+    function speakCurrentStudyWord() {
+      if (studyQueue[studyIndex]) {
+        const c = studyQueue[studyIndex];
+        speakWord(c.word, c.audioUrl || '');
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 3600);
+    }
+
+    function updateHeaderBadge() {
+      document.getElementById('card-count-badge').textContent =
+        `${savedCards.length} Thẻ từ vựng`;
+
+      const dueCount = savedCards.filter(c => c.due).length;
+      document.getElementById('deck-total-pill').textContent = `Tổng: ${savedCards.length} thẻ`;
+      document.getElementById('deck-due-pill').textContent = `Cần ôn: ${dueCount}`;
+
+      const miniList = document.getElementById('saved-cards-mini-list');
+      miniList.innerHTML = savedCards.map(c => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 10px; background:#f8fafc; border-radius:10px; border:1px solid var(--border);">
+          <div>
+            <strong>${c.word}</strong>
+            <span style="font-size:12px; color:var(--primary); font-family:monospace;">${c.phonetic}</span>
+            <button class="tts-btn" onclick="speakWord('${c.word}', '${c.audioUrl || ''}')">🔊</button>
+            <div style="font-size:12px; color:var(--subtext); margin-top:2px;">${c.translation}</div>
+          </div>
+          <span class="badge" style="background:${c.due ? '#fef3c7' : '#dcfce7'}; color:${c.due ? '#92400e' : '#166534'};">
+            ${c.due ? 'Cần ôn' : `Sau ${c.interval} ngày`}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    async function quickPasteInput() {
+      const inputEl = document.getElementById('nlp-input');
+      inputEl.focus();
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+          const clipText = await navigator.clipboard.readText();
+          if (clipText && clipText.trim()) {
+            inputEl.value = clipText.trim();
+            showToast('📋 Đã dán nhanh văn bản & tự động phân tích!');
+            runNlpExtraction();
+            return;
+          }
+        }
+      } catch (_) {}
+
+      const pasted = prompt('Dán (Paste) đoạn văn Tiếng Anh của bạn vào đây:', '');
+      if (pasted !== null && pasted.trim()) {
+        inputEl.value = pasted.trim();
+        showToast('📋 Đã dán nhanh văn bản & tự động phân tích!');
+        runNlpExtraction();
+      }
+    }
+
+    function quickClearInput() {
+      const inputEl = document.getElementById('nlp-input');
+      inputEl.value = '';
+      extractedTokens = [];
+      selectedTokenWords.clear();
+      const paraBox = document.getElementById('paragraph-vi-box');
+      if (paraBox) {
+        paraBox.style.display = 'none';
+        paraBox.innerHTML = '';
+      }
+      renderExtractedTokens();
+      inputEl.focus();
+      showToast('🗑️ Đã xóa nhanh nội dung ô nhập!');
+    }
+
+    async function runNlpExtraction() {
+      const raw = document.getElementById('nlp-input').value.trim();
+      const btn = document.getElementById('analyze-btn');
+      const container = document.getElementById('token-list');
+      const paraBox = document.getElementById('paragraph-vi-box');
+
+      if (!raw) return;
+
+      btn.disabled = true;
+      btn.textContent = '⏳ Đang tra cứu IPA chuẩn & dịch nghĩa Tiếng Việt...';
+      container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--subtext); font-size:13px;">Đang phân tích đoạn văn, lấy phiên âm IPA từ Oxford/Cambridge Dictionary & dịch nghĩa Tiếng Việt...</div>';
+
+      try {
+        // 1. Run Embedded Offline CPU-Optimized NLP Engine Immediately (< 2ms, 100% Offline)
+        let results = [];
+        if (currentMode === 'en_vi') {
+          const offlineResult = analyzeParagraphOfflineCpu(raw);
+          results = offlineResult.tokens;
+          const statusTag = document.getElementById('mode-status-tag');
+          if (statusTag) {
+            statusTag.textContent = `🟢 Offline CPU NLP (${offlineResult.elapsedMs} ms) • ${results.length} từ`;
+          }
+          const metricsEl = document.getElementById('offline-engine-metrics');
+          if (metricsEl) {
+            metricsEl.textContent = `Xử lý Offline: ${offlineResult.elapsedMs} ms • ${offlineResult.sentenceCount} câu`;
+          }
+          paraBox.style.display = 'block';
+          paraBox.innerHTML = `<strong>🧠 Phân tích Offline (${offlineResult.elapsedMs} ms):</strong> Đã tách ${offlineResult.sentenceCount} câu, trích xuất ${results.length} từ vựng, từ gốc (Lemma), phiên âm IPA (CMUdict) & gốc từ Hy Lạp/Latinh ngay trên thiết bị!`;
+        } else {
+          const chunks = raw.match(/[\u4e00-\u9fa5]{2,4}/g) || [];
+          const seen = new Set();
+          const candidateWords = [];
+          for (const ch of chunks) {
+            if (!seen.has(ch)) {
+              seen.add(ch);
+              candidateWords.push(ch);
+            }
+          }
+          results = await Promise.all(
+            candidateWords.map(w => analyzeSingleWordLive(w, raw))
+          );
+        }
+
+        extractedTokens = results;
+        selectedTokenWords = new Set(
+          results.filter(t => !savedCards.some(s => s.word === t.word)).map(t => t.word)
+        );
+        if (selectedTokenWords.size === 0 && results.length > 0) {
+          results.slice(0, 3).forEach(t => selectedTokenWords.add(t.word));
+        }
+        renderExtractedTokens();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ Phân tích Từ vựng, Phiên âm IPA & Nghĩa Tiếng Việt';
+      }
+    }
+
+    function renderExtractedTokens() {
+      const container = document.getElementById('token-list');
+      document.getElementById('extracted-count-label').textContent =
+        `Từ vựng trích xuất (${selectedTokenWords.size}/${extractedTokens.length} đã chọn)`;
+      document.getElementById('save-tokens-btn').textContent =
+        `➕ Tạo ${selectedTokenWords.size} Flashcard & Lưu vào Bộ thẻ (Anki)`;
+
+      if (extractedTokens.length === 0) {
+        container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--subtext); font-size:13px;">Ô nhập đang trống hoặc chưa có từ vựng. Hãy nhấn <strong>📋 Dán nhanh</strong> hoặc nhập câu Tiếng Anh!</div>';
+        return;
+      }
+
+      container.innerHTML = extractedTokens.map(t => {
+        const isSelected = selectedTokenWords.has(t.word);
+        const alreadyInDeck = savedCards.some(s => s.word === t.word);
+        const safeWord = t.word.replace(/'/g, "\\'");
+        const safeAudio = (t.audioUrl || '').replace(/'/g, "\\'");
+        return `
+          <div class="token-card ${isSelected ? 'selected' : ''}" onclick="toggleToken('${safeWord}')">
+            <div class="token-header">
+              <input type="checkbox" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleToken('${safeWord}')" />
+              <span class="token-word">${t.word}</span>
+              ${t.lemma && t.lemma !== t.word ? `<span class="badge" style="background:#e0e7ff;color:#3730a3;">lemma: ${t.lemma}</span>` : ''}
+              <span class="token-phonetic">${t.phonetic}</span>
+              <button class="tts-btn" onclick="event.stopPropagation(); speakWord('${safeWord}', '${safeAudio}')">🔊 Nghe</button>
+              ${alreadyInDeck ? '<span class="badge" style="margin-left:auto;">Đã lưu</span>' : ''}
+            </div>
+            <div class="token-trans">🇻🇳 ${t.translation}</div>
+            <div class="radical-chips">
+              ${t.radicals.map(r => `<span class="radical-chip">🧩 ${r.symbol} (${r.meaning})</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function toggleToken(word) {
+      if (selectedTokenWords.has(word)) selectedTokenWords.delete(word);
+      else selectedTokenWords.add(word);
+      renderExtractedTokens();
+    }
+
+    function toggleAllTokens() {
+      if (selectedTokenWords.size === extractedTokens.length) {
+        selectedTokenWords.clear();
+      } else {
+        extractedTokens.forEach(t => selectedTokenWords.add(t.word));
+      }
+      renderExtractedTokens();
+    }
+
+    function saveSelectedTokens() {
+      let added = 0;
+      extractedTokens.forEach(t => {
+        if (selectedTokenWords.has(t.word)) {
+          const existingIdx = savedCards.findIndex(s => s.word === t.word);
+          if (existingIdx === -1) {
+            savedCards.push({ ...t, due: true, interval: 0 });
+            added++;
+          } else {
+            savedCards[existingIdx] = { ...t, due: true, interval: 0 };
+            added++;
+          }
+        }
+      });
+      persistCards();
+      updateHeaderBadge();
+      renderExtractedTokens();
+      showToast(`Đã lưu ${added} thẻ Anki (kèm IPA & nghĩa Tiếng Việt) vào Bộ thẻ!`);
+    }
+
+    function startStudySession() {
+      studyQueue = savedCards.filter(c => c.due);
+      if (studyQueue.length === 0) {
+        savedCards.forEach(c => c.due = true);
+        studyQueue = [...savedCards];
+      }
+      studyIndex = 0;
+      document.getElementById('decks-list-view').style.display = 'none';
+      document.getElementById('study-session-view').style.display = 'flex';
+      renderStudyCard();
+    }
+
+    function exitStudySession() {
+      document.getElementById('study-session-view').style.display = 'none';
+      document.getElementById('decks-list-view').style.display = 'flex';
+      updateHeaderBadge();
+    }
+
+    function renderStudyCard() {
+      if (studyIndex >= studyQueue.length) {
+        showToast('Tuyệt vời! Bạn đã hoàn thành phiên ôn tập hôm nay!');
+        exitStudySession();
+        return;
+      }
+      const card = studyQueue[studyIndex];
+      document.getElementById('study-progress-label').textContent =
+        `Thẻ ${studyIndex + 1} / ${studyQueue.length}`;
+      document.getElementById('study-word').textContent = card.word;
+      document.getElementById('study-phonetic').textContent = card.phonetic;
+      document.getElementById('study-meaning').textContent = `🇻🇳 ${card.translation}`;
+      document.getElementById('study-context').textContent = `Ngữ cảnh: "${card.context}"`;
+      document.getElementById('study-radicals').innerHTML =
+        card.radicals.map(r => `<span class="radical-chip">🧩 ${r.symbol} (${r.meaning})</span>`).join('');
+
+      document.getElementById('study-answer-section').style.display = 'none';
+      document.getElementById('show-answer-btn').style.display = 'inline-flex';
+      document.getElementById('srs-grade-buttons').style.display = 'none';
+    }
+
+    function revealAnswer() {
+      document.getElementById('study-answer-section').style.display = 'block';
+      document.getElementById('show-answer-btn').style.display = 'none';
+      document.getElementById('srs-grade-buttons').style.display = 'grid';
+      speakCurrentStudyWord();
+    }
+
+    function gradeCard(grade) {
+      const card = studyQueue[studyIndex];
+      const target = savedCards.find(c => c.word === card.word);
+      if (target) {
+        const prevInterval = target.interval || 0;
+        const prevReps = target.repetitions || 0;
+        const prevEase = target.easeFactor || 2.5;
+        let nextReps = prevReps;
+        let nextInterval = prevInterval;
+        let nextEase = prevEase;
+
+        if (grade === 'again') {
+          nextReps = 0;
+          nextInterval = 1;
+          nextEase = Math.max(1.3, prevEase - 0.20);
+          target.due = true;
+        } else if (grade === 'hard') {
+          nextReps = prevReps + 1;
+          nextInterval = prevInterval === 0 ? 1 : Math.max(1, Math.round(prevInterval * 1.2));
+          nextEase = Math.max(1.3, prevEase - 0.15);
+          target.due = false;
+        } else if (grade === 'good') {
+          nextReps = prevReps + 1;
+          if (prevReps === 0) nextInterval = 1;
+          else if (prevReps === 1) nextInterval = 6;
+          else nextInterval = Math.max(1, Math.round(prevInterval * prevEase));
+          target.due = false;
+        } else if (grade === 'easy') {
+          nextReps = prevReps + 1;
+          if (prevReps === 0) nextInterval = 4;
+          else nextInterval = Math.max(1, Math.round(prevInterval * prevEase * 1.3));
+          nextEase = Math.min(3.0, prevEase + 0.15);
+          target.due = false;
+        }
+        target.interval = nextInterval;
+        target.repetitions = nextReps;
+        target.easeFactor = Number(nextEase.toFixed(2));
+        target.nextReviewAt = Date.now() + nextInterval * 86400000;
+      }
+      persistCards();
+      studyIndex++;
+      renderStudyCard();
+    }
+
+    function switchTab(tab) {
+      document.getElementById('tab-decks').style.display = tab === 'decks' ? 'flex' : 'none';
+      document.getElementById('tab-extractor').style.display = tab === 'extractor' ? 'flex' : 'none';
+
+      document.getElementById('nav-decks').classList.toggle('active', tab === 'decks');
+      document.getElementById('nav-extractor').classList.toggle('active', tab === 'extractor');
+
+      const titles = {
+        decks: 'Bộ thẻ Từ vựng (Anki)',
+        extractor: 'Trích xuất từ vựng (EN ➔ VI)'
+      };
+      document.getElementById('screen-title').textContent = titles[tab] || titles.extractor;
+    }
+
+    // Initialize in English for Vietnamese Mode
+    if (window.AndroidTTS || window.location.protocol === 'file:') {
+      document.body.classList.add('native-apk');
+    }
+    initDefaultCardsForMode('en_vi');
+    updateHeaderBadge();
+    runNlpExtraction();
+  </script>
+</body>
+</html>

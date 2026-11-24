@@ -1,0 +1,59 @@
+name: vocab_anki
+description: An AnkiDroid-inspired vocabulary builder (EN ➔ VI) with FSRS scheduling, NLP text extraction and a morpheme/radical knowledge graph. Single Flutter codebase for Android + Web.
+publish_to: 'none'
+version: 6.0.0+6
+
+environment:
+  sdk: '>=3.4.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management & DI
+  flutter_riverpod: ^2.5.1
+  get_it: ^7.7.0
+
+  # Navigation
+  go_router: ^14.2.0
+
+  # Offline-first storage (sqflite on Android, sqlite3 WASM on Web)
+  sqflite: ^2.3.3+1
+  sqflite_common_ffi_web: ^1.0.0
+  path: ^1.9.0
+  path_provider: ^2.1.3
+
+  # FP & value equality
+  fpdart: ^1.1.0
+  equatable: ^2.0.5
+
+  # Online dictionary / translation lookups (cached in SQLite)
+  dio: ^5.4.3+1
+
+  # Audio: TTS + cached playback
+  flutter_tts: ^4.0.2
+  audioplayers: ^6.1.0
+
+  # Review reminders
+  flutter_local_notifications: ^17.2.3
+  timezone: ^0.9.4
+  flutter_timezone: ^3.0.1
+
+  # Import / export / backup
+  file_picker: ^8.1.2
+  share_plus: ^10.0.2
+  archive: ^3.6.1
+  crypto: ^3.0.3
+  web: ^1.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  sqflite_common_ffi: ^2.3.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/nlp/nlp_bundle.json
+    - assets/nlp/offline_dict.db

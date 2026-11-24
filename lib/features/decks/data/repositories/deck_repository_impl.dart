@@ -269,6 +269,9 @@ class DeckRepositoryImpl implements DeckRepository {
   }) async {
     try {
       final db = await localDatabase.database;
+      // Prioritize meaningful Greco-Latin roots (-root- with root len >= 4)
+      // and lexical compound stems (len >= 4, no leading/trailing hyphen).
+      // Exclude generic affixes (-en, -er, un-, in-) and tiny 2-3 char substring collisions (-her-).
       final rows = await db.rawQuery(
         '''
         SELECT
@@ -283,6 +286,10 @@ class DeckRepositoryImpl implements DeckRepository {
         INNER JOIN radicals r
           ON r.id = e1.radical_id
         WHERE e1.card_id = ?
+          AND (
+            (r.symbol LIKE '-%-' AND LENGTH(r.symbol) >= 6)
+            OR (r.symbol NOT LIKE '-%' AND r.symbol NOT LIKE '%-' AND LENGTH(r.symbol) >= 4)
+          )
         GROUP BY c.id
         ORDER BY shared_count DESC, c.next_review_at ASC
         LIMIT ?

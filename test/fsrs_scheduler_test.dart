@@ -579,5 +579,77 @@ void main() {
       final importedCount = await backupService.importAnkiCsvBytes(csvBytes);
       expect(importedCount, greaterThanOrEqualTo(6));
     });
+
+    test(
+      'Morphology rejects substring false positives (fishermen vs another/weathered/dozen/green/uneven/wooden)',
+      () async {
+        final analyzer = HybridNlpAnalyzerDataSourceImpl(
+          localDatabase: localDb,
+        );
+        final nlpRepo = NlpExtractorRepositoryImpl(
+          analyzerDataSource: analyzer,
+          localDatabase: localDb,
+        );
+
+        const sentence =
+            'Another weathered wooden boat carried a dozen green fishermen across uneven water.';
+        final extracted = await analyzer.tokenizeAndAnalyze(
+          sentence,
+          enableOnlineLookup: false,
+        );
+        final byWord = {for (final t in extracted) t.surfaceWord: t};
+
+        final fishermenRadicals =
+            byWord['fishermen']!.radicals.map((r) => r.symbol).toSet();
+        expect(fishermenRadicals, contains('fish'));
+        expect(fishermenRadicals, contains('man'));
+        expect(fishermenRadicals, isNot(contains('-her-')));
+        expect(fishermenRadicals, isNot(contains('-en')));
+
+        expect(
+          byWord['green']!.radicals.map((r) => r.symbol),
+          isNot(contains('-en')),
+        );
+        expect(
+          byWord['dozen']!.radicals.map((r) => r.symbol),
+          isNot(contains('-en')),
+        );
+        expect(
+          byWord['another']!.radicals.map((r) => r.symbol),
+          isNot(contains('-her-')),
+        );
+        expect(
+          byWord['weathered']!.radicals.map((r) => r.symbol),
+          isNot(contains('-her-')),
+        );
+        expect(
+          byWord['wooden']!.radicals.map((r) => r.symbol),
+          contains('-en'),
+        );
+        expect(
+          byWord['uneven']!.radicals.map((r) => r.symbol),
+          contains('un-'),
+        );
+
+        final saveRes = await nlpRepo.createCardsAndGraphNodes(
+          deckId: 'default_deck',
+          selectedTokens: extracted,
+        );
+        expect(saveRes.isRight(), isTrue);
+
+        final relatedRes =
+            await deckRepo.getRelatedWordsByRadicals('card_fishermen');
+        final relatedWords = relatedRes
+            .getOrElse((_) => const [])
+            .map((s) => s.card.word)
+            .toSet();
+        expect(relatedWords, isNot(contains('another')));
+        expect(relatedWords, isNot(contains('weathered')));
+        expect(relatedWords, isNot(contains('dozen')));
+        expect(relatedWords, isNot(contains('green')));
+        expect(relatedWords, isNot(contains('uneven')));
+        expect(relatedWords, isNot(contains('wooden')));
+      },
+    );
   });
 }

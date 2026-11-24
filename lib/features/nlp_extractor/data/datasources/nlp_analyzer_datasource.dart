@@ -91,6 +91,7 @@ List<Map<String, dynamic>> _tokenizeAndDecomposeInIsolate(
         prefixes: prefixes,
         roots: roots,
         suffixes: suffixes,
+        offlineDict: offlineDict,
       );
 
       final dictEntry =
@@ -266,65 +267,209 @@ String _lemmatizeWord(
   return candidates.isNotEmpty ? candidates.first : w;
 }
 
+const Set<String> _commonBaseStems = {
+  'wood', 'gold', 'wool', 'silk', 'earth', 'dark', 'soft', 'hard', 'sharp',
+  'short', 'wide', 'deep', 'broad', 'sweet', 'bright', 'light', 'tight',
+  'loose', 'weak', 'thick', 'quick', 'fresh', 'glad', 'sad', 'mad', 'red',
+  'black', 'white', 'flat', 'even', 'open', 'broken', 'strength', 'length',
+  'fright', 'threat', 'haste', 'less', 'worse', 'awake', 'fall', 'rise',
+  'write', 'speak', 'take', 'give', 'eat', 'drive', 'ride', 'freeze', 'steal',
+  'choose', 'forget', 'forgive', 'fish', 'fisher', 'fire', 'water', 'sea',
+  'sun', 'moon', 'star', 'hand', 'foot', 'head', 'heart', 'home', 'house',
+  'work', 'play', 'time', 'life', 'book', 'note', 'road', 'way', 'day',
+  'night', 'rain', 'snow', 'wind', 'weather', 'harbor', 'ferry', 'rope',
+  'police', 'chair', 'gentle', 'craft', 'sales', 'business', 'spokes',
+  'watch', 'guard', 'port', 'spect', 'struct', 'dict', 'form', 'tract',
+};
+
+const Map<String, String> _compoundTailRoots = {
+  'men': 'man',
+  'man': 'man',
+  'women': 'woman',
+  'woman': 'woman',
+  'work': 'work',
+  'land': 'land',
+  'boat': 'boat',
+  'ship': 'ship',
+  'house': 'house',
+  'light': 'light',
+  'water': 'water',
+  'wood': 'wood',
+  'side': 'side',
+  'line': 'line',
+  'time': 'time',
+  'keeper': 'keep',
+  'maker': 'make',
+  'holder': 'hold',
+  'fighter': 'fight',
+};
+
+bool _isKnownEnglishStem(
+  String stem,
+  Map<String, dynamic> offlineDict,
+  Map<String, dynamic> roots,
+) {
+  if (stem.length < 3) return false;
+  if (_commonBaseStems.contains(stem) || offlineDict.containsKey(stem)) {
+    return true;
+  }
+  // Silent-e restoration (e.g., mak + er -> make, us + able -> use)
+  if (offlineDict.containsKey('${stem}e') ||
+      _commonBaseStems.contains('${stem}e')) {
+    return true;
+  }
+  // Doubled final consonant (e.g., runn + er -> run, flatt + en -> flat)
+  if (stem.length >= 4 && stem[stem.length - 1] == stem[stem.length - 2]) {
+    final undoubled = stem.substring(0, stem.length - 1);
+    if (offlineDict.containsKey(undoubled) ||
+        _commonBaseStems.contains(undoubled)) {
+      return true;
+    }
+  }
+  // y -> i alternation (e.g., happi + ness -> happy)
+  if (stem.endsWith('i') && stem.length >= 4) {
+    final yForm = '${stem.substring(0, stem.length - 1)}y';
+    if (offlineDict.containsKey(yForm) || _commonBaseStems.contains(yForm)) {
+      return true;
+    }
+  }
+  // Valid Greco-Latin root of length >= 4 at the start/end of stem (e.g., perspect, struct, port)
+  for (final root in roots.keys) {
+    if (root.length >= 4 &&
+        (stem == root || stem.startsWith(root) || stem.endsWith(root))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 List<Map<String, dynamic>> _decomposeMorphology(
   String word, {
   required String lemma,
   required Map<String, dynamic> prefixes,
   required Map<String, dynamic> roots,
   required Map<String, dynamic> suffixes,
+  Map<String, dynamic> offlineDict = const {},
 }) {
-  final target = lemma.isNotEmpty ? lemma : word;
+  final target = (lemma.isNotEmpty ? lemma : word).toLowerCase().trim();
+  final surfaceLower = word.toLowerCase().trim();
   final components = <Map<String, dynamic>>[];
   final addedSymbols = <String>{};
 
-  for (final entry in prefixes.entries) {
-    if (word.startsWith(entry.key) && word.length > entry.key.length + 2) {
-      final sym = '${entry.key}-';
-      if (addedSymbols.add(sym)) {
-        components.add({
-          'symbol': sym,
-          'meaning': entry.value.toString(),
-          'stroke_count': 0,
-        });
-      }
-      break;
+  void addComponent(String symbol, String meaning) {
+    if (addedSymbols.add(symbol)) {
+      components.add({
+        'symbol': symbol,
+        'meaning': meaning,
+        'stroke_count': 0,
+      });
     }
   }
 
-  for (final entry in roots.entries) {
-    if (word.contains(entry.key) || target.contains(entry.key)) {
-      final sym = '-${entry.key}-';
-      if (addedSymbols.add(sym)) {
-        components.add({
-          'symbol': sym,
-          'meaning': entry.value.toString(),
-          'stroke_count': 0,
-        });
+  // 1. Compound nouns & irregular compound plurals (e.g., fishermen -> fish + man)
+  // Check both surface and lemma so irregular plurals like fishermen/fisherman are caught cleanly.
+  for (final candidate in {target, surfaceLower}) {
+    if (candidate.length < 6) continue;
+    for (final tailEntry in _compoundTailRoots.entries) {
+      final tail = tailEntry.key;
+      final canonicalTail = tailEntry.value;
+      if (candidate.endsWith(tail) && candidate.length >= tail.length + 3) {
+        final left = candidate.substring(0, candidate.length - tail.length);
+        // Handle linker -er- in compounds like fisher+men -> fish + man
+        String? validLeft;
+        if (left.endsWith('er') &&
+            left.length >= 5 &&
+            _isKnownEnglishStem(
+              left.substring(0, left.length - 2),
+              offlineDict,
+              const {},
+            )) {
+          validLeft = left.substring(0, left.length - 2);
+        } else if (left.length >= 3 &&
+            _isKnownEnglishStem(left, offlineDict, const {})) {
+          validLeft = left;
+        }
+        if (validLeft != null) {
+          addComponent(validLeft, 'gốc từ ghép: $validLeft');
+          addComponent(canonicalTail, 'gốc từ ghép: $canonicalTail');
+          return components;
+        }
       }
     }
   }
 
-  for (final entry in suffixes.entries) {
-    if (word.endsWith(entry.key) && word.length > entry.key.length + 2) {
-      final sym = '-${entry.key}';
-      if (addedSymbols.add(sym)) {
-        components.add({
-          'symbol': sym,
-          'meaning': entry.value.toString(),
-          'stroke_count': 0,
-        });
+  // 2. Anchored & stem-validated prefix extraction (longest-first on lemma)
+  String coreStem = target;
+  final sortedPrefixes = prefixes.entries.toList()
+    ..sort((a, b) => b.key.length.compareTo(a.key.length));
+  String? matchedPrefix;
+  for (final entry in sortedPrefixes) {
+    final p = entry.key;
+    if (target.startsWith(p) && target.length >= p.length + 3) {
+      final remainder = target.substring(p.length);
+      if (_isKnownEnglishStem(remainder, offlineDict, roots)) {
+        matchedPrefix = p;
+        coreStem = remainder;
+        addComponent('$p-', entry.value.toString());
+        break;
       }
-      break;
     }
   }
 
-  if (components.isEmpty) {
-    final stem = target.length >= 4 ? target.substring(0, 4) : target;
-    components.add({
-      'symbol': '$stem-',
-      'meaning': 'gốc từ vựng ($target)',
-      'stroke_count': 0,
-    });
+  // 3. Anchored & stem-validated suffix extraction (longest-first on lemma)
+  final sortedSuffixes = suffixes.entries.toList()
+    ..sort((a, b) => b.key.length.compareTo(a.key.length));
+  String? matchedSuffix;
+  for (final entry in sortedSuffixes) {
+    final s = entry.key;
+    if (coreStem.endsWith(s) && coreStem.length >= s.length + 3) {
+      final stripped = coreStem.substring(0, coreStem.length - s.length);
+      if (_isKnownEnglishStem(stripped, offlineDict, roots)) {
+        matchedSuffix = s;
+        coreStem = stripped;
+        addComponent('-$s', entry.value.toString());
+        break;
+      }
+    }
+  }
+
+  // 4. Boundary-aligned Greco-Latin root extraction (no naive interior substring collisions)
+  final sortedRoots = roots.entries.toList()
+    ..sort((a, b) => b.key.length.compareTo(a.key.length));
+  final matchedRootKeys = <String>[];
+
+  for (final entry in sortedRoots) {
+    final r = entry.key;
+    if (matchedRootKeys.length >= 2) break;
+    // Skip shorter sub-root if a longer overlapping root already matched (e.g., spec after spect)
+    if (matchedRootKeys.any((existing) => existing.contains(r))) continue;
+
+    final bool boundaryMatch;
+    if (r.length >= 4) {
+      // 4+ char Greco-Latin root must align to a morpheme boundary of the stripped coreStem
+      boundaryMatch = coreStem == r ||
+          coreStem.startsWith(r) ||
+          coreStem.endsWith(r);
+    } else if (r.length == 3) {
+      // 3-char roots (bio, geo, vis, act, gen) ONLY match if exact stem or
+      // prefix-aligned with a validated affix — never random interior substrings like fis[her]men!
+      boundaryMatch = coreStem == r ||
+          ((matchedPrefix != null || matchedSuffix != null) &&
+              (coreStem.startsWith(r) || coreStem.endsWith(r)) &&
+              coreStem.length <= r.length + 3);
+    } else {
+      boundaryMatch = false;
+    }
+
+    if (boundaryMatch) {
+      matchedRootKeys.add(r);
+      addComponent('-$r-', entry.value.toString());
+    }
+  }
+
+  // 5. Fallback: preserve the clean base stem rather than slicing arbitrary characters
+  if (components.isEmpty && target.isNotEmpty) {
+    addComponent(target, 'gốc từ vựng ($target)');
   }
 
   return components;

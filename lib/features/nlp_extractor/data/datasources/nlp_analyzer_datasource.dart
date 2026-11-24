@@ -118,12 +118,14 @@ String? _predictContextPos({
       return 'adj';
     }
 
-    // 4. Determiners / possessives / quantifiers -> noun (or adj when modifying a following noun)
+    // 4. Determiners / possessives / quantifiers -> noun, EXCEPT -ed / -ing / adj-suffix
+    //    words sitting between a determiner/possessive and a following noun (Det + [word-ed] + Noun -> adj)
     if (_determiners.contains(prev1)) {
+      if (surface.endsWith('ed') || surface.endsWith('ing')) {
+        return nextIsContentNoun ? 'adj' : 'verb';
+      }
       if (nextIsContentNoun &&
-          (surface.endsWith('ed') ||
-              surface.endsWith('ing') ||
-              surface.endsWith('al') ||
+          (surface.endsWith('al') ||
               surface.endsWith('ous') ||
               surface.endsWith('ive') ||
               surface.endsWith('en') ||
@@ -181,13 +183,15 @@ List<Map<String, dynamic>> _tokenizeAndDecomposeInIsolate(
 
   ClozeMasker.registerIrregularSurfaceToLemmaMap(irregulars);
 
-  // Split text into sentences so every card stores its exact contextual sentence
+  // Split text into sentences and sanitize stray enclosing quotes
   final sentences = rawText
       .split(RegExp(r'(?<=[.!?。\n])\s+'))
-      .map((s) => s.trim())
+      .map(ClozeMasker.sanitizeSentence)
       .where((s) => s.isNotEmpty)
       .toList();
-  final effectiveSentences = sentences.isEmpty ? [rawText] : sentences;
+  final effectiveSentences = sentences.isEmpty
+      ? [ClozeMasker.sanitizeSentence(rawText)]
+      : sentences;
 
   final seen = <String>{};
   final results = <Map<String, dynamic>>[];
@@ -1139,9 +1143,18 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
                         inflectionNoteBase != t.surfaceWord))
                 ? '${bestVi.vi} (dạng chia của: ${inflectionNoteBase ?? effectiveLemma})'
                 : bestVi.vi;
-            final selectedPos = usedLemmaMeaning
-                ? (bestVi.pos != 'vocab' ? bestVi.pos : effectivePos)
-                : effectivePos;
+            final isParticipleSurface =
+                t.surfaceWord.endsWith('ed') || t.surfaceWord.endsWith('ing');
+            final lemmaIsIncompatibleNoun = usedLemmaMeaning &&
+                isParticipleSurface &&
+                (ctxPos == 'adj' || ctxPos == 'verb') &&
+                bestVi.pos == 'noun';
+            final selectedPos = (ctxPos.isNotEmpty &&
+                    (isParticipleSurface || lemmaIsIncompatibleNoun))
+                ? ctxPos
+                : (usedLemmaMeaning
+                    ? (bestVi.pos != 'vocab' ? bestVi.pos : effectivePos)
+                    : effectivePos);
             return ExtractedTokenModel(
               surfaceWord: t.surfaceWord,
               lemma: effectiveLemma,
@@ -1167,7 +1180,7 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
                     ),
               audioUrl: t.audioUrl,
               radicals: t.radicals,
-              isFromOfflineBundle: true,
+              isFromOfflineBundle: !lemmaIsIncompatibleNoun,
             );
           } else if (bestIpa != t.phonetic ||
               bestIpaUs != t.phoneticUs ||

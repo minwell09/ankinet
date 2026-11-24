@@ -5,6 +5,7 @@ import '../../../../core/config/app_theme.dart';
 import '../../../../core/config/injection_container.dart';
 import '../../../../core/services/tts_cache_service.dart';
 import '../../../../core/ui/pixel_widgets.dart';
+import '../../../../core/utils/cloze_masker.dart';
 import '../../../stats/presentation/providers/stats_provider.dart';
 import '../../domain/entities/vocab_card.dart';
 import '../../domain/usecases/manage_cards_and_decks_usecase.dart';
@@ -226,7 +227,7 @@ class _DeckCardsPageState extends ConsumerState<DeckCardsPage> {
                             if (card.contextSentence.isNotEmpty) ...[
                               const SizedBox(height: 6),
                               Text(
-                                '"${card.contextSentence}"',
+                                '"${ClozeMasker.sanitizeSentence(card.contextSentence)}"',
                                 style: Theme.of(context)
                                     .textTheme
                                     .bodySmall

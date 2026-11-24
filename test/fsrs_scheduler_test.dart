@@ -730,6 +730,20 @@ void main() {
           ),
         );
 
+        // Det + [word-ed] + Noun ("their weathered nets") -> adj (never noun), masked with [...], no stray ""
+        final weatheredRes = await analyzer.tokenizeAndAnalyze(
+          '"After the fishermen lowered their weathered nets into the water."',
+          enableOnlineLookup: false,
+        );
+        final weatheredToken =
+            weatheredRes.firstWhere((t) => t.surfaceWord == 'weathered');
+        expect(weatheredToken.partOfSpeech, 'adj');
+        expect(weatheredToken.sourceSentence.startsWith('"'), isFalse);
+        expect(
+          weatheredToken.clozeSentence,
+          'After the fishermen lowered their [...] nets into the water.',
+        );
+
         // 3. Deck-scoped duplicate check
         final newDeckRes = await deckRepo.createDeck(
           name: 'Second Deck',

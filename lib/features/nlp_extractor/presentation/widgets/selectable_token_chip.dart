@@ -4,6 +4,7 @@ import '../../../../core/config/app_theme.dart';
 import '../../../../core/config/injection_container.dart';
 import '../../../../core/services/tts_cache_service.dart';
 import '../../../../core/ui/pixel_widgets.dart';
+import '../../../../core/utils/cloze_masker.dart';
 import '../../domain/entities/extracted_token.dart';
 
 class SelectableTokenCard extends StatelessWidget {
@@ -127,7 +128,7 @@ class SelectableTokenCard extends StatelessWidget {
                           border: Border.all(color: px.border, width: 1.5),
                         ),
                         child: Text(
-                          'CLOZE: "${token.clozeSentence.isNotEmpty ? token.clozeSentence : token.sourceSentence}"',
+                          'CLOZE: "${ClozeMasker.sanitizeSentence(token.clozeSentence.isNotEmpty ? token.clozeSentence : ClozeMasker.maskSentence(sentence: token.sourceSentence, word: token.surfaceWord, lemma: token.lemma))}"',
                           style: Theme.of(context)
                               .textTheme
                               .bodySmall

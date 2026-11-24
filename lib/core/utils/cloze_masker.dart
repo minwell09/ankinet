@@ -99,6 +99,21 @@ class ClozeMasker {
     });
   }
 
+  /// Strips stray leading/trailing quotation marks (straight or curly) and
+  /// collapses whitespace so UI displays never render duplicate quotes (`""...`).
+  static String sanitizeSentence(String raw) {
+    var s = raw.trim().replaceAll(RegExp(r'\s+'), ' ');
+    while (s.isNotEmpty &&
+        (s.startsWith('"') || s.startsWith('“') || s.startsWith('”'))) {
+      s = s.substring(1).trimLeft();
+    }
+    while (s.isNotEmpty &&
+        (s.endsWith('"') || s.endsWith('“') || s.endsWith('”'))) {
+      s = s.substring(0, s.length - 1).trimRight();
+    }
+    return s;
+  }
+
   /// Masks the surface form of [word] (or any inflected form of [lemma] / [word])
   /// inside [sentence] with `[...]`, strictly preserving the surrounding sentence.
   static String maskSentence({
@@ -106,7 +121,7 @@ class ClozeMasker {
     required String word,
     String lemma = '',
   }) {
-    final trimmedSentence = sentence.trim();
+    final trimmedSentence = sanitizeSentence(sentence);
     if (trimmedSentence.isEmpty) return '';
 
     final cleanWord = word.trim().toLowerCase();

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/decks/presentation/pages/deck_cards_page.dart';
 import '../../features/decks/presentation/pages/deck_list_page.dart';
+import '../../features/decks/presentation/providers/deck_provider.dart';
 import '../../features/nlp_extractor/presentation/pages/nlp_extractor_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/stats/presentation/pages/stats_page.dart';
@@ -74,7 +75,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-class MainShellScaffold extends StatelessWidget {
+class MainShellScaffold extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
 
   const MainShellScaffold({super.key, required this.navigationShell});
@@ -95,7 +96,7 @@ class MainShellScaffold extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final px = PixelColors.of(context);
     final current = navigationShell.currentIndex;
 
@@ -127,7 +128,12 @@ class MainShellScaffold extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),
                       child: GestureDetector(
-                        onTap: () => navigationShell.goBranch(i),
+                        onTap: () {
+                          navigationShell.goBranch(i);
+                          if (i == 0) {
+                            ref.read(cardsRevisionProvider.notifier).state++;
+                          }
+                        },
                         child: MouseRegion(
                           cursor: SystemMouseCursors.click,
                           child: AnimatedContainer(

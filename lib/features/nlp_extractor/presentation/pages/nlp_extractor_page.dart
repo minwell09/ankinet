@@ -71,7 +71,7 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
         _textController.text = next.rawText;
       }
       if (next.lastSavedCount != null &&
-          next.lastSavedCount != prev?.lastSavedCount) {
+          next.saveRevision != prev?.saveRevision) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -79,6 +79,7 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
             ),
           ),
         );
+        ref.read(cardsRevisionProvider.notifier).state++;
         ref.invalidate(deckListProvider);
         ref.invalidate(studyStatsProvider);
       }

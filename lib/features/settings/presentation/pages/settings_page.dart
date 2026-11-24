@@ -144,6 +144,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         count = await backup.importAnkiCsvBytes(bytes);
       }
 
+      ref.read(cardsRevisionProvider.notifier).state++;
       ref.invalidate(deckListProvider);
       ref.invalidate(studyStatsProvider);
       ref.invalidate(studySettingsProvider);

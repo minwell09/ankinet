@@ -16,6 +16,7 @@ class NlpExtractorState {
   final Set<String> selectedWords;
   final String? errorMessage;
   final int? lastSavedCount;
+  final int saveRevision;
   final int? lastElapsedMs;
 
   const NlpExtractorState({
@@ -28,6 +29,7 @@ class NlpExtractorState {
     this.selectedWords = const {},
     this.errorMessage,
     this.lastSavedCount,
+    this.saveRevision = 0,
     this.lastElapsedMs,
   });
 
@@ -40,6 +42,7 @@ class NlpExtractorState {
     Set<String>? selectedWords,
     String? errorMessage,
     int? lastSavedCount,
+    int? saveRevision,
     int? lastElapsedMs,
   }) {
     return NlpExtractorState(
@@ -51,6 +54,7 @@ class NlpExtractorState {
       selectedWords: selectedWords ?? this.selectedWords,
       errorMessage: errorMessage,
       lastSavedCount: lastSavedCount,
+      saveRevision: saveRevision ?? this.saveRevision,
       lastElapsedMs: lastElapsedMs ?? this.lastElapsedMs,
     );
   }
@@ -187,6 +191,7 @@ class NlpExtractorNotifier extends StateNotifier<NlpExtractorState> {
             tokens: updatedTokens,
             selectedWords: const {},
             lastSavedCount: savedCount,
+            saveRevision: state.saveRevision + 1,
           );
         },
       );

@@ -8,6 +8,7 @@ import '../../../../core/srs/sm2_scheduler.dart';
 import '../../../decks/domain/entities/related_word_suggestion.dart';
 import '../../../decks/domain/entities/vocab_card.dart';
 import '../../../decks/domain/usecases/manage_cards_and_decks_usecase.dart';
+import '../../../decks/presentation/providers/deck_provider.dart';
 import '../../domain/usecases/study_session_usecases.dart';
 
 class StudySessionState {
@@ -109,8 +110,31 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
           queue: List<VocabCard>.from(cards),
           currentIndex: 0,
           showAnswer: false,
+          hasRevealed: false,
           relatedWords: const [],
         );
+      },
+    );
+  }
+
+  /// Merges newly created or newly due cards from SQLite into the active study
+  /// session queue without losing the user's current card or progress.
+  Future<void> refreshQueueForNewCards() async {
+    if (state.isLoading) return;
+    final res = await getDueCardsUseCase(deckId);
+    res.fold(
+      (_) {},
+      (latestDue) {
+        if (latestDue.isEmpty) return;
+        final existingIds = state.queue.map((c) => c.id).toSet();
+        final newlyAdded =
+            latestDue.where((c) => !existingIds.contains(c.id)).toList();
+        if (newlyAdded.isEmpty) return;
+
+        final updatedQueue = List<VocabCard>.from(state.queue)
+          ..addAll(newlyAdded);
+        ttsCacheService.preloadWords(newlyAdded.map((c) => c.word).toList());
+        state = state.copyWith(queue: updatedQueue);
       },
     );
   }
@@ -338,7 +362,7 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
 
 final studySessionProvider = StateNotifierProvider.autoDispose
     .family<StudySessionNotifier, StudySessionState, String>((ref, deckId) {
-  return StudySessionNotifier(
+  final notifier = StudySessionNotifier(
     deckId: deckId,
     getDueCardsUseCase: sl<GetDueCardsUseCase>(),
     submitReviewUseCase: sl<SubmitReviewUseCase>(),
@@ -347,4 +371,11 @@ final studySessionProvider = StateNotifierProvider.autoDispose
     deleteCardUseCase: sl<DeleteCardUseCase>(),
     ttsCacheService: sl<TtsCacheService>(),
   );
+
+  // Automatically merge newly saved/imported cards into an open study queue
+  ref.listen<int>(cardsRevisionProvider, (_, __) {
+    notifier.refreshQueueForNewCards();
+  });
+
+  return notifier;
 });

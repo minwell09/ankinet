@@ -857,6 +857,27 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
     return _cachedBundle!;
   }
 
+  static final RegExp _inflectionRefPattern = RegExp(
+    r'^(?:\([^)]+\)\s*)?(?:quá khứ|thời quá khứ|phân từ|số nhiều của|dạng\s|ngôi thứ|so sánh hơn|so sánh nhất|plural of|past tense of|past participle of|present participle of|comparative of|superlative of|third-person singular)',
+    caseSensitive: false,
+  );
+
+  static final RegExp _inflectionTargetWordPattern = RegExp(
+    r'(?:của|of)\s+([a-zA-Z]{2,30})\b',
+    caseSensitive: false,
+  );
+
+  static bool _isInflectionCrossReference(String vi) {
+    final trimmed = vi.trim();
+    if (trimmed.isEmpty) return false;
+    return _inflectionRefPattern.hasMatch(trimmed);
+  }
+
+  static String? _extractCrossReferenceBaseWord(String vi) {
+    final m = _inflectionTargetWordPattern.firstMatch(vi);
+    return m?.group(1)?.toLowerCase();
+  }
+
   /// Collects 2-word and 3-word n-gram candidates (including lemmatized head verbs)
   /// to detect Phrasal Verbs / Multi-Word Expressions in `offline_dict.db` in 1 batch query.
   Set<String> _collectMultiWordCandidates(
@@ -962,33 +983,77 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
         for (final t in tokens)
           if (t.lemma.isNotEmpty) t.lemma,
       };
-      final sqlEntries = await _offlineDictDb.lookupBatch(lookupCandidates);
+      final sqlEntries =
+          Map<String, OfflineDictEntry>.from(
+        await _offlineDictDb.lookupBatch(lookupCandidates),
+      );
+
+      // Detect inflectional cross-reference definitions (e.g., "Quá khứ và phân từ quá khứ của tap")
+      // and fetch any referenced base headwords not yet in sqlEntries.
+      final extraBaseRefs = <String>{};
+      for (final t in tokens) {
+        final surfaceHit = sqlEntries[t.surfaceWord];
+        if (surfaceHit != null && _isInflectionCrossReference(surfaceHit.vi)) {
+          final refBase = _extractCrossReferenceBaseWord(surfaceHit.vi);
+          if (refBase != null &&
+              refBase.isNotEmpty &&
+              !sqlEntries.containsKey(refBase)) {
+            extraBaseRefs.add(refBase);
+          }
+        }
+      }
+      if (extraBaseRefs.isNotEmpty) {
+        sqlEntries.addAll(await _offlineDictDb.lookupBatch(extraBaseRefs));
+      }
 
       if (sqlEntries.isNotEmpty) {
         tokens = tokens.map((t) {
           final surfaceHit = sqlEntries[t.surfaceWord];
-          final lemmaHit =
-              t.lemma.isNotEmpty ? sqlEntries[t.lemma] : null;
+          final surfaceIsInflectionRef = surfaceHit != null &&
+              _isInflectionCrossReference(surfaceHit.vi);
+          final crossRefBase = surfaceIsInflectionRef
+              ? _extractCrossReferenceBaseWord(surfaceHit.vi)
+              : null;
+
+          final lemmaKey = (crossRefBase != null && crossRefBase.isNotEmpty)
+              ? crossRefBase
+              : t.lemma;
+          final lemmaHit = lemmaKey.isNotEmpty ? sqlEntries[lemmaKey] : null;
           final ctxPos = predictedPosByWord[t.surfaceWord] ?? '';
 
-          // Prefer whichever entry matches the predicted grammatical context POS
+          // Prefer full base-lemma meaning whenever surfaceWord is only a grammatical cross-reference
           OfflineDictEntry? bestVi;
-          if (ctxPos.isNotEmpty) {
-            if (lemmaHit != null &&
-                lemmaHit.vi.isNotEmpty &&
-                lemmaHit.pos == ctxPos) {
-              bestVi = lemmaHit;
-            } else if (surfaceHit != null &&
-                surfaceHit.vi.isNotEmpty &&
-                surfaceHit.pos == ctxPos) {
-              bestVi = surfaceHit;
+          String? inflectionNoteBase;
+          if (surfaceIsInflectionRef &&
+              lemmaHit != null &&
+              lemmaHit.vi.isNotEmpty &&
+              !_isInflectionCrossReference(lemmaHit.vi)) {
+            bestVi = lemmaHit;
+            inflectionNoteBase = lemmaKey;
+          } else {
+            if (ctxPos.isNotEmpty) {
+              if (lemmaHit != null &&
+                  lemmaHit.vi.isNotEmpty &&
+                  !_isInflectionCrossReference(lemmaHit.vi) &&
+                  lemmaHit.pos == ctxPos) {
+                bestVi = lemmaHit;
+              } else if (surfaceHit != null &&
+                  surfaceHit.vi.isNotEmpty &&
+                  !surfaceIsInflectionRef &&
+                  surfaceHit.pos == ctxPos) {
+                bestVi = surfaceHit;
+              }
             }
+            bestVi ??= (surfaceHit != null &&
+                    surfaceHit.vi.isNotEmpty &&
+                    !surfaceIsInflectionRef)
+                ? surfaceHit
+                : ((lemmaHit != null &&
+                        lemmaHit.vi.isNotEmpty &&
+                        !_isInflectionCrossReference(lemmaHit.vi))
+                    ? lemmaHit
+                    : surfaceHit);
           }
-          bestVi ??= (surfaceHit != null && surfaceHit.vi.isNotEmpty)
-              ? surfaceHit
-              : ((lemmaHit != null && lemmaHit.vi.isNotEmpty)
-                  ? lemmaHit
-                  : null);
 
           final bestIpaUs = (surfaceHit != null && surfaceHit.ipaUs.isNotEmpty)
               ? surfaceHit.ipaUs
@@ -1009,8 +1074,10 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
                       : (bestIpaUk.isNotEmpty ? bestIpaUk : t.phonetic)));
 
           final effectiveLemma = (lemmaHit != null && lemmaHit.vi.isNotEmpty)
-              ? t.lemma
-              : ((surfaceHit != null && surfaceHit.vi.isNotEmpty)
+              ? lemmaKey
+              : ((surfaceHit != null &&
+                      surfaceHit.vi.isNotEmpty &&
+                      !surfaceIsInflectionRef)
                   ? t.surfaceWord
                   : t.lemma);
 
@@ -1022,13 +1089,17 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
                   : t.partOfSpeech);
 
           if (bestVi != null) {
+            final finalVi = (inflectionNoteBase != null &&
+                    inflectionNoteBase != t.surfaceWord)
+                ? '${bestVi.vi} (dạng chia của: $inflectionNoteBase)'
+                : bestVi.vi;
             return ExtractedTokenModel(
               surfaceWord: t.surfaceWord,
               lemma: effectiveLemma,
               phonetic: bestIpa,
               phoneticUs: bestIpaUs,
               phoneticUk: bestIpaUk,
-              translation: bestVi.vi,
+              translation: finalVi,
               partOfSpeech: effectivePos,
               sourceSentence: t.sourceSentence,
               clozeSentence: t.surfaceWord.contains(' ')

@@ -73,11 +73,15 @@ def load_wordnet_exceptions(wordnet_zip_path: str) -> dict:
     return irregulars
 
 
-_VOWEL_NUCLEUS_RE = re.compile(r"[aeiouɑɒæʌəɜɛɪɔʊʉɝɚ]+", re.IGNORECASE)
+_VOWEL_NUCLEUS_RE = re.compile(r"[aeiouɑɒæʌəɜɛɪɔʊʉɝɚɐ]+", re.IGNORECASE)
+_INITIAL_MID_ONSET_STRESS_RE = re.compile(
+    r"^([^aeiouɑɒæʌəɜɛɪɔʊʉɝɚɐˈˌ\s.]{1,4})ˈ([aeiouɑɒæʌəɜɛɪɔʊʉɝɚɐ])",
+    re.IGNORECASE,
+)
 
 
 def normalize_learner_ipa(raw_ipa: str) -> str:
-    """Normalizes narrow IPA allophones (ɫ->l, ɹ->r) and removes redundant ˈ on monosyllables."""
+    """Normalizes narrow IPA allophones (ɫ->l, ɹ->r), strips ˈ on monosyllables, and fixes initial mid-onset ˈ."""
     trimmed = (raw_ipa or "").strip()
     if not trimmed:
         return ""
@@ -87,6 +91,8 @@ def normalize_learner_ipa(raw_ipa: str) -> str:
     if " " not in inner and "." not in inner:
         if len(_VOWEL_NUCLEUS_RE.findall(inner)) <= 1 and "ˌ" not in inner:
             inner = inner.replace("ˈ", "").replace("'", "")
+        else:
+            inner = _INITIAL_MID_ONSET_STRESS_RE.sub(r"ˈ\1\2", inner, count=1)
     if not inner:
         return ""
     return f"/{inner}/" if had_slashes else inner

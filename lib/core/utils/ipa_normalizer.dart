@@ -2,10 +2,18 @@
 /// into cleaner, learner-friendly broad IPA:
 /// - Converts narrow dark-L `ɫ` -> `l` and alveolar approximant `ɹ` -> `r`
 /// - Removes redundant primary stress marks `ˈ` on single-syllable words
-///   (e.g., `/ˈɫɪft/` or `/lˈɪft/` -> `/lɪft/`).
+///   (e.g., `/ˈɫɪft/`, `/lˈɪft/`, `/tˈæpt/` -> `/lɪft/`, `/tæpt/`)
+/// - Fixes initial mid-onset stress placement from `ipa-dict` UK entries
+///   (e.g., `/pˈɔːtəbəl/` -> `/ˈpɔːtəbəl/`, `/stɹˈʌktʃɐ/` -> `/ˈstrʌktʃɐ/`).
 class IpaNormalizer {
   static final RegExp _vowelNucleusRegex = RegExp(
-    r'[aeiouɑɒæʌəɜɛɪɔʊʉɝɚ]+',
+    r'[aeiouɑɒæʌəɜɛɪɔʊʉɝɚɐ]+',
+    caseSensitive: false,
+  );
+
+  // Matches initial consonant onset followed immediately by primary stress ˈ before the first vowel
+  static final RegExp _initialMidOnsetStressRegex = RegExp(
+    r'^([^aeiouɑɒæʌəɜɛɪɔʊʉɝɚɐˈˌ\s.]{1,4})ˈ([aeiouɑɒæʌəɜɛɪɔʊʉɝɚɐ])',
     caseSensitive: false,
   );
 
@@ -24,11 +32,18 @@ class IpaNormalizer {
         .replaceAll('ɹ', 'r')
         .replaceAll('ɾ', 't');
 
-    // 2. Remove redundant primary stress ˈ on single-syllable words (single word, 1 vowel nucleus)
+    // 2. Single-word stress cleanup
     if (!inner.contains(' ') && !inner.contains('.')) {
       final vowelGroups = _vowelNucleusRegex.allMatches(inner).length;
       if (vowelGroups <= 1 && !inner.contains('ˌ')) {
+        // Remove redundant primary stress ˈ on single-syllable words (e.g., /tˈæpt/ -> /tæpt/)
         inner = inner.replaceAll('ˈ', '').replaceAll("'", '');
+      } else {
+        // Fix initial mid-onset stress placement from UK ipa-dict (e.g., /pˈɔːtəbəl/ -> /ˈpɔːtəbəl/)
+        inner = inner.replaceFirstMapped(
+          _initialMidOnsetStressRegex,
+          (m) => 'ˈ${m.group(1)}${m.group(2)}',
+        );
       }
     }
 

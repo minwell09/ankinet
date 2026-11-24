@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 
 import '../../../../core/srs/fsrs_scheduler.dart';
 import '../../../../core/utils/cloze_masker.dart';
+import '../../../../core/utils/ipa_normalizer.dart';
 
 class VocabCard extends Equatable {
   final String id;
@@ -99,9 +100,9 @@ class VocabCard extends Equatable {
       deckId: r['deck_id'] as String,
       word: r['word'] as String,
       lemma: (r['lemma'] as String?) ?? '',
-      phonetic: (r['phonetic'] as String?) ?? '',
-      phoneticUs: (r['phonetic_us'] as String?) ?? '',
-      phoneticUk: (r['phonetic_uk'] as String?) ?? '',
+      phonetic: IpaNormalizer.normalize((r['phonetic'] as String?) ?? ''),
+      phoneticUs: IpaNormalizer.normalize((r['phonetic_us'] as String?) ?? ''),
+      phoneticUk: IpaNormalizer.normalize((r['phonetic_uk'] as String?) ?? ''),
       translation: (r['translation'] as String?) ?? '',
       partOfSpeech: (r['part_of_speech'] as String?) ?? 'vocab',
       contextSentence: (r['context_sentence'] as String?) ?? '',

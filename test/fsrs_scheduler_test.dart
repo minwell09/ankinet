@@ -658,9 +658,11 @@ void main() {
     test(
       'IpaNormalizer, Context-Window POS, Phrasal Verbs MWE & Deck-Scoped Duplicates',
       () async {
-        // 1. Broad Learner IPA Normalization
+        // 1. Broad Learner IPA Normalization (monosyllables & UK mid-onset stress)
         expect(IpaNormalizer.normalize('/ˈɫɪft/'), '/lɪft/');
         expect(IpaNormalizer.normalize('/lˈɪft/'), '/lɪft/');
+        expect(IpaNormalizer.normalize('/tˈæpt/'), '/tæpt/');
+        expect(IpaNormalizer.normalize('/pˈɔːtəbəl/'), '/ˈpɔːtəbəl/');
         expect(IpaNormalizer.normalize('/ˈtɹænspɔɹt/'), '/ˈtrænspɔrt/');
 
         // 2. Context-Window POS + Multi-Word Phrasal Verbs against offline_dict.db
@@ -698,6 +700,21 @@ void main() {
         // Context-window POS predicts 'lift' after "began to" as verb & normalizes IPA
         expect(byWord['lift']?.partOfSpeech, 'verb');
         expect(byWord['lift']?.phoneticUs, isNot(contains('ɫ')));
+
+        // Inflection cross-reference resolution: "tapped" resolves to full "tap" meaning + /tæpt/
+        final tappedRes = await analyzer.tokenizeAndAnalyze(
+          'He gently tapped the wooden door.',
+          enableOnlineLookup: false,
+        );
+        final tappedToken =
+            tappedRes.firstWhere((t) => t.surfaceWord == 'tapped');
+        expect(tappedToken.lemma, 'tap');
+        expect(
+          tappedToken.translation.toLowerCase(),
+          isNot(startsWith('(v.) quá khứ')),
+        );
+        expect(tappedToken.translation, contains('(dạng chia của: tap)'));
+        expect(tappedToken.phoneticUk, isNot(contains('ˈ')));
 
         // 3. Deck-scoped duplicate check
         final newDeckRes = await deckRepo.createDeck(

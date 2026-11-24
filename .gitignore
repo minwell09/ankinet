@@ -49,3 +49,5 @@ app.*.map.json
 
 # Compiled local web preview output (generated from `flutter build web`)
 /preview/
+/apks/
+android/local.properties

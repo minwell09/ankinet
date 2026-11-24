@@ -51,3 +51,6 @@ class IpaNormalizer {
     return hadSlashes ? '/$inner/' : inner;
   }
 }
+
+/// Canonical learner IPA normalizer function.
+String normalizeIpa(String rawIpa) => IpaNormalizer.normalize(rawIpa);

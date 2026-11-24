@@ -715,6 +715,20 @@ void main() {
         );
         expect(tappedToken.translation, contains('(dạng chia của: tap)'));
         expect(tappedToken.phoneticUk, isNot(contains('ˈ')));
+        // Cloze integrity invariant: never collapses to "[...]" and preserves full sentence
+        expect(tappedToken.clozeSentence, isNot('[...]'));
+        expect(
+          tappedToken.clozeSentence,
+          'He gently [...] the wooden door.',
+        );
+        expect(
+          tappedToken.clozeSentence.length,
+          greaterThanOrEqualTo(
+            tappedToken.sourceSentence.length -
+                tappedToken.surfaceWord.length +
+                ClozeMasker.placeholder.length,
+          ),
+        );
 
         // 3. Deck-scoped duplicate check
         final newDeckRes = await deckRepo.createDeck(

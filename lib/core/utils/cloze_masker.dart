@@ -100,7 +100,7 @@ class ClozeMasker {
   }
 
   /// Masks the surface form of [word] (or any inflected form of [lemma] / [word])
-  /// inside [sentence] with `[...]`.
+  /// inside [sentence] with `[...]`, strictly preserving the surrounding sentence.
   static String maskSentence({
     required String sentence,
     required String word,
@@ -113,18 +113,46 @@ class ClozeMasker {
     final cleanLemma = lemma.trim().toLowerCase();
     if (cleanWord.isEmpty && cleanLemma.isEmpty) return trimmedSentence;
 
-    // 1. Build regex matching exact surface word, irregular surface variants,
-    // and regular morphological inflections of the word/lemma.
-    final pattern = buildSurfaceRegex(word: cleanWord, lemma: cleanLemma);
-    if (pattern != null && pattern.hasMatch(trimmedSentence)) {
-      return trimmedSentence.replaceAll(pattern, placeholder);
+    final maxTargetLen = cleanWord.length >= cleanLemma.length
+        ? cleanWord.length
+        : cleanLemma.length;
+
+    bool isValidCloze(String candidate) {
+      if (!candidate.contains(placeholder)) return false;
+      // Guard: never collapse a multi-word sentence down to just "[...]"
+      if (trimmedSentence.contains(' ') && candidate.trim() == placeholder) {
+        return false;
+      }
+      final minExpectedLen =
+          trimmedSentence.length - maxTargetLen + placeholder.length - 4;
+      return candidate.length >= (minExpectedLen < placeholder.length ? placeholder.length : minExpectedLen);
     }
 
-    // 2. Fallback for CJK / multi-character tokens without word boundaries
+    // 1. Prefer exact word-boundary match of surfaceWord first so only that token is replaced
+    if (cleanWord.isNotEmpty) {
+      final exactBoundary = RegExp(
+        '\\b${RegExp.escape(cleanWord)}\\b',
+        caseSensitive: false,
+      );
+      if (exactBoundary.hasMatch(trimmedSentence)) {
+        final masked = trimmedSentence.replaceFirst(exactBoundary, placeholder);
+        if (isValidCloze(masked)) return masked;
+      }
+    }
+
+    // 2. Match exact surface word, irregular variants, or regular inflections of lemma
+    final pattern = buildSurfaceRegex(word: cleanWord, lemma: cleanLemma);
+    if (pattern != null && pattern.hasMatch(trimmedSentence)) {
+      final masked = trimmedSentence.replaceFirst(pattern, placeholder);
+      if (isValidCloze(masked)) return masked;
+    }
+
+    // 3. Fallback for CJK / multi-word / punctuation-adjacent tokens
     final target = cleanWord.isNotEmpty ? cleanWord : cleanLemma;
     final looseRegex = RegExp(RegExp.escape(target), caseSensitive: false);
     if (looseRegex.hasMatch(trimmedSentence)) {
-      return trimmedSentence.replaceAll(looseRegex, placeholder);
+      final masked = trimmedSentence.replaceFirst(looseRegex, placeholder);
+      if (isValidCloze(masked)) return masked;
     }
 
     return trimmedSentence;

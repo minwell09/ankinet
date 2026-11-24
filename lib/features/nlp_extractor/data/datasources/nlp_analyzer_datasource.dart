@@ -48,7 +48,23 @@ const Set<String> _verbTriggerPrevs = {
 const Set<String> _determiners = {
   'a', 'an', 'the', 'this', 'that', 'these', 'those', 'my', 'your', 'his',
   'her', 'its', 'our', 'their', 'some', 'any', 'many', 'few', 'several',
-  'each', 'every', 'no', 'one', 'two', 'three', 'another',
+  'each', 'every', 'no', 'one', 'two', 'three', 'four', 'five', 'another',
+  'dozen', 'hundred', 'thousand', 'both', 'all',
+};
+
+const Set<String> _auxiliaries = {
+  'was', 'were', 'is', 'are', 'am', 'be', 'been', 'being',
+  'has', 'have', 'had',
+};
+
+const Set<String> _subjectPronouns = {
+  'i', 'you', 'he', 'she', 'it', 'we', 'they', 'who', 'someone', 'everyone',
+};
+
+const Set<String> _lyAdjectives = {
+  'friendly', 'lovely', 'lonely', 'lively', 'elderly', 'silly', 'ugly',
+  'daily', 'weekly', 'monthly', 'yearly', 'early', 'likely', 'unlikely',
+  'deadly', 'costly', 'timely', 'orderly', 'chilly', 'holy', 'jolly',
 };
 
 const Set<String> _degreeAdverbs = {
@@ -63,19 +79,32 @@ const Set<String> _prepositionsAndConj = {
   'while', 'when', 'where', 'that', 'which', 'who', 'than', 'because', 'if',
 };
 
-/// Context-window POS heuristic inspecting (prev2, prev1, next1) within the sentence.
-/// Returns a high-confidence grammatical POS ('verb', 'noun', 'adj', 'adv') or null.
+/// Generalized Context-First POS Heuristic inspecting (prev2, prev1, next1) +
+/// morphological inflection BEFORE any dictionary lookup.
 String? _predictContextPos({
   required String surface,
   String? prev2,
   String? prev1,
   String? next1,
 }) {
+  // 1. Adverbs ending in -ly (excluding common -ly adjectives like friendly, lovely)
+  if (surface.endsWith('ly') &&
+      surface.length > 4 &&
+      !_lyAdjectives.contains(surface)) {
+    return 'adv';
+  }
+
+  final nextIsContentNoun = next1 != null &&
+      next1.length >= 3 &&
+      !_prepositionsAndConj.contains(next1) &&
+      !_stopWords.contains(next1) &&
+      !_verbTriggerPrevs.contains(next1) &&
+      !_auxiliaries.contains(next1);
+
   if (prev1 != null) {
-    // Infinitive "to + verb" (e.g., "began to lift", "want to run") & modals ("would lift")
+    // 2. Infinitive "to + verb" & modals ("can/will/would/should/must/could/might + verb")
     if (_verbTriggerPrevs.contains(prev1)) {
       if (prev1 == 'to') {
-        // Distinguish "to + verb" from "to + det/noun" (if next1 is determiner/preposition/end, likely verb)
         if (prev2 == null || !_determiners.contains(prev2)) {
           return 'verb';
         }
@@ -83,33 +112,46 @@ String? _predictContextPos({
         return 'verb';
       }
     }
+
+    // 3. Degree adverbs -> adj
     if (_degreeAdverbs.contains(prev1)) {
-      return surface.endsWith('ly') ? 'adv' : 'adj';
+      return 'adj';
     }
+
+    // 4. Determiners / possessives / quantifiers -> noun (or adj when modifying a following noun)
     if (_determiners.contains(prev1)) {
-      // "a weathered ferry": if followed by another content word (not prep/conj/stop), likely adj; else noun
-      if (next1 != null &&
-          next1.length >= 3 &&
-          !_prepositionsAndConj.contains(next1) &&
-          !_stopWords.contains(next1) &&
-          !_verbTriggerPrevs.contains(next1)) {
-        if (surface.endsWith('ed') ||
-            surface.endsWith('ing') ||
-            surface.endsWith('al') ||
-            surface.endsWith('ous') ||
-            surface.endsWith('ive') ||
-            surface.endsWith('en') ||
-            surface.endsWith('ic') ||
-            surface.endsWith('ful')) {
-          return 'adj';
-        }
+      if (nextIsContentNoun &&
+          (surface.endsWith('ed') ||
+              surface.endsWith('ing') ||
+              surface.endsWith('al') ||
+              surface.endsWith('ous') ||
+              surface.endsWith('ive') ||
+              surface.endsWith('en') ||
+              surface.endsWith('ic') ||
+              surface.endsWith('ful') ||
+              surface.endsWith('less') ||
+              _lyAdjectives.contains(surface))) {
+        return 'adj';
       }
       return 'noun';
     }
+
+    // 5. Inflected verb endings (-ed, -ing) after auxiliary, pronoun, or subject noun
+    if ((surface.endsWith('ed') && surface.length > 4) ||
+        (surface.endsWith('ing') && surface.length > 5)) {
+      if (nextIsContentNoun &&
+          (prev2 != null && _determiners.contains(prev2))) {
+        return 'adj';
+      }
+      if (_auxiliaries.contains(prev1) ||
+          _subjectPronouns.contains(prev1) ||
+          (!_prepositionsAndConj.contains(prev1) &&
+              !_determiners.contains(prev1))) {
+        return 'verb';
+      }
+    }
   }
-  if (surface.endsWith('ly') && surface.length > 4) {
-    return 'adv';
-  }
+
   return null;
 }
 
@@ -1089,21 +1131,35 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
                   : t.partOfSpeech);
 
           if (bestVi != null) {
-            final finalVi = (inflectionNoteBase != null &&
-                    inflectionNoteBase != t.surfaceWord)
-                ? '${bestVi.vi} (dạng chia của: $inflectionNoteBase)'
+            final usedLemmaMeaning = bestVi == lemmaHit &&
+                effectiveLemma.isNotEmpty &&
+                effectiveLemma != t.surfaceWord;
+            final finalVi = (usedLemmaMeaning ||
+                    (inflectionNoteBase != null &&
+                        inflectionNoteBase != t.surfaceWord))
+                ? '${bestVi.vi} (dạng chia của: ${inflectionNoteBase ?? effectiveLemma})'
                 : bestVi.vi;
+            final selectedPos = usedLemmaMeaning
+                ? (bestVi.pos != 'vocab' ? bestVi.pos : effectivePos)
+                : effectivePos;
             return ExtractedTokenModel(
               surfaceWord: t.surfaceWord,
               lemma: effectiveLemma,
-              phonetic: bestIpa,
-              phoneticUs: bestIpaUs,
-              phoneticUk: bestIpaUk,
+              phonetic: normalizeIpa(bestIpa),
+              phoneticUs: normalizeIpa(bestIpaUs),
+              phoneticUk: normalizeIpa(bestIpaUk),
               translation: finalVi,
-              partOfSpeech: effectivePos,
+              partOfSpeech: selectedPos,
               sourceSentence: t.sourceSentence,
               clozeSentence: t.surfaceWord.contains(' ')
-                  ? t.clozeSentence
+                  ? (t.clozeSentence.contains(ClozeMasker.placeholder) &&
+                          t.clozeSentence.trim() != ClozeMasker.placeholder
+                      ? t.clozeSentence
+                      : ClozeMasker.maskSentence(
+                          sentence: t.sourceSentence,
+                          word: t.surfaceWord,
+                          lemma: effectiveLemma,
+                        ))
                   : ClozeMasker.maskSentence(
                       sentence: t.sourceSentence,
                       word: t.surfaceWord,
@@ -1119,9 +1175,9 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
             return ExtractedTokenModel(
               surfaceWord: t.surfaceWord,
               lemma: effectiveLemma,
-              phonetic: bestIpa,
-              phoneticUs: bestIpaUs,
-              phoneticUk: bestIpaUk,
+              phonetic: normalizeIpa(bestIpa),
+              phoneticUs: normalizeIpa(bestIpaUs),
+              phoneticUk: normalizeIpa(bestIpaUk),
               translation: t.translation,
               partOfSpeech: effectivePos,
               sourceSentence: t.sourceSentence,
@@ -1180,9 +1236,12 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
           cacheByCompositeKey['${t.surfaceWord}|'];
 
       if (cached != null) {
-        final cachedPhonetic = (cached['phonetic'] as String?) ?? '';
-        final cachedPhoneticUs = (cached['phonetic_us'] as String?) ?? '';
-        final cachedPhoneticUk = (cached['phonetic_uk'] as String?) ?? '';
+        final cachedPhonetic =
+            normalizeIpa((cached['phonetic'] as String?) ?? '');
+        final cachedPhoneticUs =
+            normalizeIpa((cached['phonetic_us'] as String?) ?? '');
+        final cachedPhoneticUk =
+            normalizeIpa((cached['phonetic_uk'] as String?) ?? '');
         final cachedTranslation = (cached['translation'] as String?) ?? '';
         final cachedPos =
             (cached['part_of_speech'] as String?) ?? t.partOfSpeech;

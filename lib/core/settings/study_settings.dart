@@ -20,6 +20,7 @@ class StudySettings extends Equatable {
   final int? lastBackupEpochMs;
   final String geminiApiKey;
   final List<double>? customFsrsWeights;
+  final String targetAccent; // 'en-US' or 'en-GB'
 
   const StudySettings({
     this.newCardsPerDay = 20,
@@ -39,6 +40,7 @@ class StudySettings extends Equatable {
     this.lastBackupEpochMs,
     this.geminiApiKey = '',
     this.customFsrsWeights,
+    this.targetAccent = 'en-US',
   });
 
   /// Returns personalized 17 FSRS weights if configured, otherwise [FsrsScheduler.defaultWeights].
@@ -84,6 +86,7 @@ class StudySettings extends Equatable {
     String? geminiApiKey,
     List<double>? customFsrsWeights,
     bool clearCustomFsrsWeights = false,
+    String? targetAccent,
   }) {
     return StudySettings(
       newCardsPerDay: newCardsPerDay ?? this.newCardsPerDay,
@@ -106,6 +109,7 @@ class StudySettings extends Equatable {
       customFsrsWeights: clearCustomFsrsWeights
           ? null
           : (customFsrsWeights ?? this.customFsrsWeights),
+      targetAccent: targetAccent ?? this.targetAccent,
     );
   }
 
@@ -131,6 +135,7 @@ class StudySettings extends Equatable {
       'custom_fsrs_weights': hasCustomFsrsWeights
           ? customFsrsWeights!.map((w) => w.toStringAsFixed(4)).join(',')
           : '',
+      'target_accent': targetAccent,
     };
   }
 
@@ -176,6 +181,8 @@ class StudySettings extends Equatable {
       lastBackupEpochMs: int.tryParse(map['last_backup_epoch_ms'] ?? ''),
       geminiApiKey: (map['gemini_api_key'] ?? '').trim(),
       customFsrsWeights: parseWeights(map['custom_fsrs_weights']),
+      targetAccent:
+          map['target_accent'] == 'en-GB' ? 'en-GB' : 'en-US',
     );
   }
 
@@ -198,5 +205,6 @@ class StudySettings extends Equatable {
         lastBackupEpochMs,
         geminiApiKey,
         customFsrsWeights,
+        targetAccent,
       ];
 }

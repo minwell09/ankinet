@@ -90,7 +90,7 @@ class MainShellScaffold extends ConsumerWidget {
     (
       icon: Icons.auto_awesome_outlined,
       activeIcon: Icons.auto_awesome,
-      label: 'Tách từ NLP'
+      label: 'Tách từ'
     ),
     (
       icon: Icons.insights_outlined,
@@ -110,94 +110,94 @@ class MainShellScaffold extends ConsumerWidget {
       body: WoodPlankBackground(child: navigationShell),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: px.wood,
+          color: const Color(0xFF4A301E),
           border: Border(
-            top: BorderSide(color: px.border, width: 3),
+            top: BorderSide(color: px.shadow, width: 2),
           ),
         ),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: px.woodHighlight, width: 2),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: List.generate(_tabs.length, (i) {
-                  final tab = _tabs[i];
-                  final isSelected = i == current;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: GestureDetector(
-                        onTap: () {
-                          navigationShell.goBranch(i);
-                          if (i == 0) {
-                            ref.read(cardsRevisionProvider.notifier).state++;
-                          }
-                        },
-                        child: MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 90),
-                            transform: Matrix4.translationValues(
-                              0,
-                              isSelected ? -1 : 0,
-                              0,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 8,
-                              horizontal: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected ? px.primary : px.woodShadow,
-                              border: Border.all(
-                                color: isSelected
-                                    ? px.primaryBorder
-                                    : px.border,
-                                width: 2.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: px.shadow,
-                                  offset: Offset(0, isSelected ? 3 : 2),
-                                  blurRadius: 0,
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isSelected ? tab.activeIcon : tab.icon,
-                                  size: 20,
-                                  color: isSelected ? px.ink : px.inkOnWood,
-                                ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  tab.label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontFamily: AppTheme.pixelDisplayFont,
-                                    fontFamilyFallback: AppTheme.fontFallback,
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w700,
-                                    color: isSelected ? px.ink : px.inkOnWood,
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              children: List.generate(_tabs.length, (i) {
+                final tab = _tabs[i];
+                final isSelected = i == current;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        navigationShell.goBranch(i);
+                        if (i == 0) {
+                          ref.read(cardsRevisionProvider.notifier).state++;
+                        }
+                      },
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 110),
+                          transform: Matrix4.translationValues(
+                            0,
+                            isSelected ? -2 : 0,
+                            0,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 7,
+                            horizontal: 4,
+                          ),
+                          decoration: isSelected
+                              ? BoxDecoration(
+                                  color: const Color(0xFF5E3D26),
+                                  border: Border.all(
+                                    color: px.primary,
+                                    width: 2,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: px.shadow,
+                                      offset: const Offset(0, 2),
+                                      blurRadius: 0,
+                                    ),
+                                  ],
+                                )
+                              : const BoxDecoration(
+                                  color: Colors.transparent,
                                 ),
-                              ],
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isSelected ? tab.activeIcon : tab.icon,
+                                size: 20,
+                                color: isSelected
+                                    ? px.primary
+                                    : px.inkOnWood.withValues(alpha: 0.78),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                tab.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: AppTheme.pixelDisplayFont,
+                                  fontFamilyFallback: AppTheme.fontFallback,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? px.primary
+                                      : px.inkOnWood.withValues(alpha: 0.78),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                  );
-                }),
-              ),
+                  ),
+                );
+              }),
             ),
           ),
         ),

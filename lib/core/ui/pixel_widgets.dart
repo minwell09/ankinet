@@ -40,10 +40,10 @@ class _WoodPlankPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, Paint()..color = baseColor);
 
     const plankHeight = 28.0;
-    final altPaint = Paint()..color = plankColor.withValues(alpha: 0.42);
+    final altPaint = Paint()..color = Colors.white.withValues(alpha: 0.04);
     final seamPaint = Paint()
-      ..color = seamColor.withValues(alpha: 0.45)
-      ..strokeWidth = 2;
+      ..color = Colors.black.withValues(alpha: 0.04)
+      ..strokeWidth = 1.5;
 
     for (double y = 0; y < size.height; y += plankHeight) {
       final row = (y ~/ plankHeight);
@@ -68,10 +68,10 @@ class _WoodPlankPainter extends CustomPainter {
   bool shouldRepaint(covariant _WoodPlankPainter oldDelegate) => false;
 }
 
-/// Stardew Valley 9-slice style double-beveled pixel panel:
-/// - Outer dark espresso outline (#2A160C)
-/// - Inner top/left highlight bevel (#E8C391) & bottom/right shadow bevel (#6B3E21)
-/// - Hard pixel drop shadow (blurRadius: 0)
+/// Warm, airy 16-bit parchment card:
+/// - Warm parchment surface (#F5ECD7)
+/// - Single 2px pixel outline (#5C3A21) — eliminates border-inside-border clutter
+/// - Hard bottom drop shadow (0px 3px 0px #26160C)
 class PixelCard extends StatelessWidget {
   final Widget child;
   final Color? backgroundColor;
@@ -91,8 +91,8 @@ class PixelCard extends StatelessWidget {
     this.borderColor,
     this.padding = const EdgeInsets.all(14),
     this.margin = EdgeInsets.zero,
-    this.borderWidth = 3.0,
-    this.shadowOffset = const Offset(4, 4),
+    this.borderWidth = 2.0,
+    this.shadowOffset = const Offset(0, 3),
     this.woodFrame = false,
     this.showRivets = false,
     this.onTap,
@@ -104,54 +104,10 @@ class PixelCard extends StatelessWidget {
     final bg = backgroundColor ?? px.surface;
     final outerBorder = borderColor ?? px.border;
 
-    Widget innerContent = Container(
-      decoration: BoxDecoration(
-        color: bg,
-        border: Border(
-          top: BorderSide(color: px.woodHighlight, width: 2.5),
-          left: BorderSide(color: px.woodHighlight, width: 2.5),
-          right: BorderSide(color: px.woodShadow, width: 2.5),
-          bottom: BorderSide(color: px.woodShadow, width: 2.5),
-        ),
-      ),
-      child: Stack(
-        children: [
-          Padding(padding: padding, child: child),
-          if (showRivets) ...[
-            Positioned(top: 5, left: 5, child: _PixelRivet(px: px)),
-            Positioned(top: 5, right: 5, child: _PixelRivet(px: px)),
-            Positioned(bottom: 5, left: 5, child: _PixelRivet(px: px)),
-            Positioned(bottom: 5, right: 5, child: _PixelRivet(px: px)),
-          ],
-        ],
-      ),
-    );
-
-    if (woodFrame) {
-      innerContent = Container(
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: px.wood,
-          border: Border(
-            top: BorderSide(color: px.woodLight, width: 2),
-            left: BorderSide(color: px.woodLight, width: 2),
-            right: BorderSide(color: px.woodShadow, width: 2),
-            bottom: BorderSide(color: px.woodShadow, width: 2),
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: px.border, width: 2),
-          ),
-          child: innerContent,
-        ),
-      );
-    }
-
     final box = Container(
       margin: margin,
       decoration: BoxDecoration(
-        color: outerBorder,
+        color: bg,
         border: Border.all(color: outerBorder, width: borderWidth),
         boxShadow: [
           BoxShadow(
@@ -162,7 +118,7 @@ class PixelCard extends StatelessWidget {
           ),
         ],
       ),
-      child: innerContent,
+      child: Padding(padding: padding, child: child),
     );
 
     if (onTap == null) return box;
@@ -238,8 +194,8 @@ class _PixelButtonState extends State<PixelButton> {
         : px.inkMuted;
     final outerBorder = widget.borderColor ?? px.border;
 
-    final topHighlight = Color.lerp(bg, Colors.white, 0.35)!;
-    final bottomLip = Color.lerp(bg, Colors.black, 0.32)!;
+    final topHighlight = Color.lerp(bg, Colors.white, 0.25)!;
+    final bottomLip = Color.lerp(bg, Colors.black, 0.22)!;
     final shiftY = _pressed && enabled ? 2.0 : 0.0;
     final shadowY = _pressed && enabled ? 1.0 : 3.0;
 
@@ -255,8 +211,8 @@ class _PixelButtonState extends State<PixelButton> {
           duration: const Duration(milliseconds: 55),
           transform: Matrix4.translationValues(0, shiftY, 0),
           decoration: BoxDecoration(
-            color: outerBorder,
-            border: Border.all(color: outerBorder, width: 2.5),
+            color: bg,
+            border: Border.all(color: outerBorder, width: 2),
             boxShadow: [
               BoxShadow(
                 color: px.shadow,
@@ -268,14 +224,11 @@ class _PixelButtonState extends State<PixelButton> {
           child: Container(
             padding: widget.padding,
             decoration: BoxDecoration(
-              color: bg,
               border: Border(
-                top: BorderSide(color: topHighlight, width: 2.5),
-                left: BorderSide(color: topHighlight, width: 2),
-                right: BorderSide(color: bottomLip, width: 2),
+                top: BorderSide(color: topHighlight, width: 1.5),
                 bottom: BorderSide(
                   color: bottomLip,
-                  width: _pressed && enabled ? 1.5 : 4.0,
+                  width: _pressed && enabled ? 1.0 : 2.0,
                 ),
               ),
             ),
@@ -359,17 +312,13 @@ class PixelBadge extends StatelessWidget {
     final fg = foregroundColor ?? px.ink;
 
     final content = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: bg,
-        border: Border.all(color: px.border, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: px.woodShadow.withValues(alpha: 0.45),
-            offset: const Offset(1.5, 1.5),
-            blurRadius: 0,
-          ),
-        ],
+        border: Border.all(
+          color: px.border.withValues(alpha: 0.55),
+          width: 1.5,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -378,15 +327,18 @@ class PixelBadge extends StatelessWidget {
             Icon(icon, size: 14, color: fg),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontFamily: AppTheme.pixelDisplayFont,
-              fontFamilyFallback: AppTheme.fontFallback,
-              color: fg,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.3,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: AppTheme.pixelDisplayFont,
+                fontFamilyFallback: AppTheme.fontFallback,
+                color: fg,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],
@@ -426,28 +378,92 @@ class PixelProgressBar extends StatelessWidget {
 
     return Container(
       height: height,
-      padding: const EdgeInsets.all(2.5),
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: px.woodShadow,
-        border: Border.all(color: px.border, width: 2.5),
+        color: px.surfaceAlt,
+        border: Border.all(color: px.border, width: 1.5),
       ),
       child: Row(
         children: List.generate(segments, (index) {
           final isFilled = index < filledCount;
           return Expanded(
             child: Container(
-              margin: EdgeInsets.only(right: index == segments - 1 ? 0 : 2),
+              margin: EdgeInsets.only(right: index == segments - 1 ? 0 : 1.5),
               decoration: BoxDecoration(
-                color: isFilled ? activeColor : px.canvas.withValues(alpha: 0.6),
+                color: isFilled
+                    ? activeColor
+                    : px.border.withValues(alpha: 0.14),
                 border: isFilled
                     ? Border(
-                        top: BorderSide(color: activeHighlight, width: 2),
+                        top: BorderSide(color: activeHighlight, width: 1.5),
                       )
                     : null,
               ),
             ),
           );
         }),
+      ),
+    );
+  }
+}
+
+/// Seamless multi-column stat strip separated by 1px vertical dividers (no outer border).
+class PixelStatBar extends StatelessWidget {
+  final List<({String label, String value, Color? valueColor})> items;
+
+  const PixelStatBar({super.key, required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    final px = PixelColors.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      color: px.surfaceAlt.withValues(alpha: 0.65),
+      child: IntrinsicHeight(
+        child: Row(
+          children: List.generate(items.length * 2 - 1, (idx) {
+            if (idx.isOdd) {
+              return Container(
+                width: 1,
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                color: px.border.withValues(alpha: 0.25),
+              );
+            }
+            final item = items[idx ~/ 2];
+            return Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    item.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppTheme.monoFont,
+                      fontFamilyFallback: AppTheme.fontFallback,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: item.valueColor ?? px.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    item.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: AppTheme.bodyFont,
+                      fontFamilyFallback: AppTheme.bodyFontFallback,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      color: px.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -477,33 +493,29 @@ class PixelSectionHeader extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 30,
-          height: 30,
+          width: 26,
+          height: 26,
           decoration: BoxDecoration(
             color: accent,
-            border: Border.all(color: px.border, width: 2.5),
-            boxShadow: [
-              BoxShadow(
-                color: px.shadow.withValues(alpha: 0.45),
-                offset: const Offset(2, 2),
-                blurRadius: 0,
-              ),
-            ],
+            border: Border.all(color: px.border, width: 1.5),
           ),
-          child: Icon(icon, size: 17, color: iconColor),
+          child: Icon(icon, size: 15, color: iconColor),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 9),
         Expanded(
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: 0.4,
+                  letterSpacing: 0.3,
                 ),
           ),
         ),
-        if (trailing != null) trailing!,
+        if (trailing != null) ...[
+          const SizedBox(width: 8),
+          trailing!,
+        ],
       ],
     );
   }
@@ -521,6 +533,7 @@ class PixelFlipCard extends StatefulWidget {
   final bool isFlipped;
   final ValueChanged<bool>? onFlipChanged;
   final Duration duration;
+  final bool useCustomFrame;
 
   const PixelFlipCard({
     super.key,
@@ -529,6 +542,7 @@ class PixelFlipCard extends StatefulWidget {
     required this.isFlipped,
     this.onFlipChanged,
     this.duration = const Duration(milliseconds: 440),
+    this.useCustomFrame = false,
   });
 
   @override
@@ -692,95 +706,120 @@ class _PixelFlipCardState extends State<PixelFlipCard>
                     Transform(
                       alignment: Alignment.center,
                       transform: matrix,
-                      child: Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: px.wood,
-                          border: Border.all(color: px.border, width: 3),
-                        ),
-                        padding: const EdgeInsets.all(5),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: px.cardParchment,
-                            border: Border.all(
-                              color: isBack ? px.primaryBorder : px.border,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              border: Border(
-                                top: BorderSide(
-                                  color: px.woodHighlight,
-                                  width: 2.5,
-                                ),
-                                left: BorderSide(
-                                  color: px.woodHighlight,
-                                  width: 2.5,
-                                ),
-                                right: BorderSide(
-                                  color: px.woodShadow,
-                                  width: 2.5,
-                                ),
-                                bottom: BorderSide(
-                                  color: px.woodShadow,
-                                  width: 2.5,
-                                ),
-                              ),
-                            ),
-                            child: CustomPaint(
+                      child: widget.useCustomFrame
+                          ? CustomPaint(
                               foregroundPainter: sheenOpacity > 0.005
                                   ? _CardSheenPainter(
                                       progress: sheenProgress,
                                       opacity: sheenOpacity,
                                     )
                                   : null,
-                              child: Stack(
+                              child: IndexedStack(
+                                index: isBack ? 1 : 0,
+                                alignment: Alignment.center,
+                                sizing: StackFit.loose,
                                 children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(22),
-                                    child: IndexedStack(
-                                      index: isBack ? 1 : 0,
-                                      alignment: Alignment.center,
-                                      sizing: StackFit.loose,
+                                  IgnorePointer(
+                                    ignoring: isBack,
+                                    child: widget.front,
+                                  ),
+                                  IgnorePointer(
+                                    ignoring: !isBack,
+                                    child: widget.back,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: px.wood,
+                                border: Border.all(color: px.border, width: 3),
+                              ),
+                              padding: const EdgeInsets.all(5),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: px.cardParchment,
+                                  border: Border.all(
+                                    color:
+                                        isBack ? px.primaryBorder : px.border,
+                                    width: 2.5,
+                                  ),
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border(
+                                      top: BorderSide(
+                                        color: px.woodHighlight,
+                                        width: 2.5,
+                                      ),
+                                      left: BorderSide(
+                                        color: px.woodHighlight,
+                                        width: 2.5,
+                                      ),
+                                      right: BorderSide(
+                                        color: px.woodShadow,
+                                        width: 2.5,
+                                      ),
+                                      bottom: BorderSide(
+                                        color: px.woodShadow,
+                                        width: 2.5,
+                                      ),
+                                    ),
+                                  ),
+                                  child: CustomPaint(
+                                    foregroundPainter: sheenOpacity > 0.005
+                                        ? _CardSheenPainter(
+                                            progress: sheenProgress,
+                                            opacity: sheenOpacity,
+                                          )
+                                        : null,
+                                    child: Stack(
                                       children: [
-                                        IgnorePointer(
-                                          ignoring: isBack,
-                                          child: widget.front,
+                                        Padding(
+                                          padding: const EdgeInsets.all(22),
+                                          child: IndexedStack(
+                                            index: isBack ? 1 : 0,
+                                            alignment: Alignment.center,
+                                            sizing: StackFit.loose,
+                                            children: [
+                                              IgnorePointer(
+                                                ignoring: isBack,
+                                                child: widget.front,
+                                              ),
+                                              IgnorePointer(
+                                                ignoring: !isBack,
+                                                child: widget.back,
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        IgnorePointer(
-                                          ignoring: !isBack,
-                                          child: widget.back,
+                                        Positioned(
+                                          top: 6,
+                                          left: 6,
+                                          child: _PixelRivet(px: px),
+                                        ),
+                                        Positioned(
+                                          top: 6,
+                                          right: 6,
+                                          child: _PixelRivet(px: px),
+                                        ),
+                                        Positioned(
+                                          bottom: 6,
+                                          left: 6,
+                                          child: _PixelRivet(px: px),
+                                        ),
+                                        Positioned(
+                                          bottom: 6,
+                                          right: 6,
+                                          child: _PixelRivet(px: px),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Positioned(
-                                    top: 6,
-                                    left: 6,
-                                    child: _PixelRivet(px: px),
-                                  ),
-                                  Positioned(
-                                    top: 6,
-                                    right: 6,
-                                    child: _PixelRivet(px: px),
-                                  ),
-                                  Positioned(
-                                    bottom: 6,
-                                    left: 6,
-                                    child: _PixelRivet(px: px),
-                                  ),
-                                  Positioned(
-                                    bottom: 6,
-                                    right: 6,
-                                    child: _PixelRivet(px: px),
-                                  ),
-                                ],
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 );

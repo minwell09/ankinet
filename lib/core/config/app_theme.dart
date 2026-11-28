@@ -53,28 +53,28 @@ class PixelColors extends ThemeExtension<PixelColors> {
   });
 
   static const stardew = PixelColors(
-    canvas: Color(0xFF2B1D14),
-    canvasAlt: Color(0xFF3A2518),
-    wood: Color(0xFF8C5230),
-    woodLight: Color(0xFFA8653B),
+    canvas: Color(0xFF362316),
+    canvasAlt: Color(0xFF4A301E),
+    wood: Color(0xFF4A301E),
+    woodLight: Color(0xFF6B452B),
     woodHighlight: Color(0xFFE8C391),
-    woodShadow: Color(0xFF6B3E21),
-    surface: Color(0xFFF6E6C9),
-    cardParchment: Color(0xFFFFF3D6),
-    surfaceAlt: Color(0xFFE8D5B5),
-    border: Color(0xFF2A160C),
-    shadow: Color(0xFF1A0D06),
-    ink: Color(0xFF3B2214),
-    inkMuted: Color(0xFF6E4730),
+    woodShadow: Color(0xFF5C3A21),
+    surface: Color(0xFFF5ECD7),
+    cardParchment: Color(0xFFF5ECD7),
+    surfaceAlt: Color(0xFFEBE0C5),
+    border: Color(0xFF5C3A21),
+    shadow: Color(0xFF21130A),
+    ink: Color(0xFF331E12),
+    inkMuted: Color(0xFF6E4E37),
     inkOnWood: Color(0xFFFFF8E7),
     primary: Color(0xFFF2A93B),
     primaryBorder: Color(0xFF7A4419),
-    emerald: Color(0xFF56A84B),
+    emerald: Color(0xFF4C9A48),
     gold: Color(0xFFE88D38),
     coral: Color(0xFFD94E4E),
-    cyan: Color(0xFF4B9CD3),
-    cropEmpty: Color(0xFFD9C3A3),
-    cropLush: Color(0xFF4E9A3E),
+    cyan: Color(0xFF3F8FC4),
+    cropEmpty: Color(0xFFDFD2B8),
+    cropLush: Color(0xFF4C9A48),
   );
 
   static PixelColors of(BuildContext context) {
@@ -219,11 +219,17 @@ class PixelSliderThumbShape extends SliderComponentShape {
 
 class AppTheme {
   static const String pixelDisplayFont = 'Pixelify Sans';
-  static const String bodyFont = 'Chakra Petch';
+  static const String monoFont = 'JetBrains Mono';
+  static const String bodyFont = 'Be Vietnam Pro';
   static const List<String> fontFallback = [
     'JetBrains Mono',
     'Courier New',
     'monospace',
+  ];
+  static const List<String> bodyFontFallback = [
+    'Inter',
+    'Roboto',
+    'sans-serif',
   ];
 
   static ThemeData get stardewTheme {
@@ -256,7 +262,7 @@ class AppTheme {
 
     final baseText = ThemeData.light().textTheme.apply(
           fontFamily: bodyFont,
-          fontFamilyFallback: fontFallback,
+          fontFamilyFallback: bodyFontFallback,
           bodyColor: px.ink,
           displayColor: px.ink,
         );
@@ -267,20 +273,20 @@ class AppTheme {
       colorScheme: colorScheme,
       scaffoldBackgroundColor: px.canvas,
       fontFamily: bodyFont,
-      fontFamilyFallback: fontFallback,
+      fontFamilyFallback: bodyFontFallback,
       textTheme: baseText.copyWith(
         headlineMedium: baseText.headlineMedium?.copyWith(
           fontFamily: pixelDisplayFont,
           fontFamilyFallback: fontFallback,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.6,
+          letterSpacing: 0.4,
           color: px.ink,
         ),
         titleLarge: baseText.titleLarge?.copyWith(
           fontFamily: pixelDisplayFont,
           fontFamilyFallback: fontFallback,
           fontWeight: FontWeight.w700,
-          letterSpacing: 0.4,
+          letterSpacing: 0.3,
           color: px.ink,
         ),
         titleMedium: baseText.titleMedium?.copyWith(
@@ -296,12 +302,18 @@ class AppTheme {
           color: px.ink,
         ),
         bodyMedium: baseText.bodyMedium?.copyWith(
+          fontFamily: bodyFont,
+          fontFamilyFallback: bodyFontFallback,
           color: px.ink,
           fontWeight: FontWeight.w500,
+          height: 1.45,
         ),
         bodySmall: baseText.bodySmall?.copyWith(
+          fontFamily: bodyFont,
+          fontFamilyFallback: bodyFontFallback,
           color: px.inkMuted,
           fontWeight: FontWeight.w500,
+          height: 1.4,
         ),
       ),
       extensions: const [px],
@@ -315,13 +327,13 @@ class AppTheme {
         titleTextStyle: const TextStyle(
           fontFamily: pixelDisplayFont,
           fontFamilyFallback: fontFallback,
-          fontSize: 18,
+          fontSize: 17,
           fontWeight: FontWeight.w700,
           color: Color(0xFFFFF8E7),
-          letterSpacing: 0.8,
+          letterSpacing: 0.6,
         ),
         shape: Border(
-          bottom: BorderSide(color: px.border, width: 3),
+          bottom: BorderSide(color: px.shadow, width: 2),
         ),
       ),
       cardTheme: CardThemeData(
@@ -330,7 +342,7 @@ class AppTheme {
         margin: const EdgeInsets.only(bottom: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.zero,
-          side: BorderSide(color: px.border, width: 2.5),
+          side: BorderSide(color: px.border, width: 2),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -338,25 +350,25 @@ class AppTheme {
           backgroundColor: px.primary,
           foregroundColor: px.ink,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.zero,
-            side: BorderSide(color: px.primaryBorder, width: 2.5),
+            side: BorderSide(color: px.border, width: 2),
           ),
           textStyle: const TextStyle(
             fontFamily: pixelDisplayFont,
             fontFamilyFallback: fontFallback,
             fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
+            letterSpacing: 0.4,
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: px.ink,
-          backgroundColor: px.cardParchment,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          side: BorderSide(color: px.border, width: 2.5),
+          backgroundColor: px.surface,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          side: BorderSide(color: px.border, width: 2),
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: const TextStyle(
             fontFamily: pixelDisplayFont,
@@ -370,41 +382,51 @@ class AppTheme {
           foregroundColor: px.primaryBorder,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
           textStyle: const TextStyle(
-            fontFamily: pixelDisplayFont,
-            fontFamilyFallback: fontFallback,
-            fontWeight: FontWeight.w700,
+            fontFamily: bodyFont,
+            fontFamilyFallback: bodyFontFallback,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: px.surfaceAlt,
         selectedColor: px.primary,
-        side: BorderSide(color: px.border, width: 2),
+        side: BorderSide(color: px.border.withValues(alpha: 0.6), width: 1.5),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         labelStyle: TextStyle(
-          fontFamily: pixelDisplayFont,
-          fontFamilyFallback: fontFallback,
+          fontFamily: bodyFont,
+          fontFamilyFallback: bodyFontFallback,
           fontSize: 12,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w600,
           color: px.ink,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: px.cardParchment,
-        labelStyle: TextStyle(color: px.inkMuted, fontWeight: FontWeight.w600),
-        hintStyle: TextStyle(color: px.inkMuted.withValues(alpha: 0.8)),
+        fillColor: const Color(0xFFFBF6EA),
+        labelStyle: TextStyle(
+          fontFamily: bodyFont,
+          fontFamilyFallback: bodyFontFallback,
+          color: px.inkMuted,
+          fontWeight: FontWeight.w600,
+        ),
+        hintStyle: TextStyle(
+          fontFamily: bodyFont,
+          fontFamilyFallback: bodyFontFallback,
+          color: px.inkMuted.withValues(alpha: 0.72),
+          fontSize: 13.5,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: px.woodShadow, width: 2.5),
+          borderSide: BorderSide(color: px.border.withValues(alpha: 0.65), width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: px.woodShadow, width: 2.5),
+          borderSide: BorderSide(color: px.border.withValues(alpha: 0.65), width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.zero,
-          borderSide: BorderSide(color: px.primaryBorder, width: 3),
+          borderSide: BorderSide(color: px.primaryBorder, width: 2),
         ),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(

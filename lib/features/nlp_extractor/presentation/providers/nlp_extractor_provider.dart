@@ -7,10 +7,25 @@ import '../../domain/entities/extracted_token.dart';
 import '../../domain/usecases/analyze_text_usecase.dart';
 import '../../domain/usecases/create_cards_from_tokens_usecase.dart';
 
+class RecentNlpSnippet {
+  final String text;
+  final LearningLanguageMode mode;
+  final int tokenCount;
+  final DateTime analyzedAt;
+
+  const RecentNlpSnippet({
+    required this.text,
+    required this.mode,
+    required this.tokenCount,
+    required this.analyzedAt,
+  });
+}
+
 class NlpExtractorState {
   final LearningLanguageMode mode;
   final String rawText;
   final bool isAnalyzing;
+  final bool isTranslatingAi;
   final bool isSaving;
   final List<ExtractedToken> tokens;
   final Set<String> selectedWords;
@@ -18,12 +33,14 @@ class NlpExtractorState {
   final int? lastSavedCount;
   final int saveRevision;
   final int? lastElapsedMs;
+  final List<RecentNlpSnippet> recentSnippets;
 
   const NlpExtractorState({
     this.mode = LearningLanguageMode.englishForVietnamese,
     this.rawText =
         'Engineers inspect the structure and predict how portable transport can transform global export from a new perspective.',
     this.isAnalyzing = false,
+    this.isTranslatingAi = false,
     this.isSaving = false,
     this.tokens = const [],
     this.selectedWords = const {},
@@ -31,12 +48,14 @@ class NlpExtractorState {
     this.lastSavedCount,
     this.saveRevision = 0,
     this.lastElapsedMs,
+    this.recentSnippets = const [],
   });
 
   NlpExtractorState copyWith({
     LearningLanguageMode? mode,
     String? rawText,
     bool? isAnalyzing,
+    bool? isTranslatingAi,
     bool? isSaving,
     List<ExtractedToken>? tokens,
     Set<String>? selectedWords,
@@ -44,11 +63,13 @@ class NlpExtractorState {
     int? lastSavedCount,
     int? saveRevision,
     int? lastElapsedMs,
+    List<RecentNlpSnippet>? recentSnippets,
   }) {
     return NlpExtractorState(
       mode: mode ?? this.mode,
       rawText: rawText ?? this.rawText,
       isAnalyzing: isAnalyzing ?? this.isAnalyzing,
+      isTranslatingAi: isTranslatingAi ?? this.isTranslatingAi,
       isSaving: isSaving ?? this.isSaving,
       tokens: tokens ?? this.tokens,
       selectedWords: selectedWords ?? this.selectedWords,
@@ -56,6 +77,7 @@ class NlpExtractorState {
       lastSavedCount: lastSavedCount,
       saveRevision: saveRevision ?? this.saveRevision,
       lastElapsedMs: lastElapsedMs ?? this.lastElapsedMs,
+      recentSnippets: recentSnippets ?? this.recentSnippets,
     );
   }
 }
@@ -104,11 +126,11 @@ class NlpExtractorNotifier extends StateNotifier<NlpExtractorState> {
     );
 
     try {
-      final settings = await settingsRepository.loadSettings();
+      // Tier 1: Instant Offline SQLite batch lookup (0ms network wait)
       final result = await analyzeTextUseCase(
         input,
         mode: state.mode,
-        enableOnlineLookup: settings.enableOnlineLookup,
+        enableOnlineLookup: false,
         deckId: deckId,
       );
       sw.stop();
@@ -123,11 +145,22 @@ class NlpExtractorNotifier extends StateNotifier<NlpExtractorState> {
               .where((t) => !t.isAlreadySaved)
               .map((t) => t.surfaceWord)
               .toSet();
+          final trimmed = input.trim();
+          final updatedRecents = [
+            RecentNlpSnippet(
+              text: trimmed,
+              mode: state.mode,
+              tokenCount: tokens.length,
+              analyzedAt: DateTime.now(),
+            ),
+            ...state.recentSnippets.where((s) => s.text != trimmed),
+          ].take(5).toList(growable: false);
           state = state.copyWith(
             isAnalyzing: false,
             tokens: tokens,
             selectedWords: preselected,
             lastElapsedMs: sw.elapsedMilliseconds,
+            recentSnippets: updatedRecents,
           );
         },
       );
@@ -148,6 +181,49 @@ class NlpExtractorNotifier extends StateNotifier<NlpExtractorState> {
       updated.add(surfaceWord);
     }
     state = state.copyWith(selectedWords: updated);
+  }
+
+  void updateTokenTranslation(String surfaceWord, String newTranslation) {
+    final trimmed = newTranslation.trim();
+    if (trimmed.isEmpty) return;
+    final updated = state.tokens.map((t) {
+      if (t.surfaceWord == surfaceWord) {
+        return t.copyWith(translation: trimmed);
+      }
+      return t;
+    }).toList(growable: false);
+    state = state.copyWith(tokens: updated);
+  }
+
+  /// Tier 2: Single batched Gemini API request for contextual Vietnamese meanings
+  /// & sentence translations, cached into SQLite `dict_cache`.
+  Future<String> translateContextWithAi() async {
+    if (state.tokens.isEmpty) return 'Chưa có từ nào để dịch.';
+    final settings = await settingsRepository.loadSettings();
+    final apiKey = settings.geminiApiKey.trim();
+    if (apiKey.isEmpty) {
+      return 'Chưa cấu hình Gemini API Key. Hãy thêm key trong tab Cài đặt!';
+    }
+
+    state = state.copyWith(isTranslatingAi: true, errorMessage: null);
+    try {
+      final updated = await sl<NlpAnalyzerDataSource>().translateBatchWithGemini(
+        tokens: state.tokens,
+        rawText: state.rawText,
+        apiKey: apiKey,
+      );
+      final aiCount = updated.where((t) => t.translationSource == 'AI').length;
+      state = state.copyWith(
+        isTranslatingAi: false,
+        tokens: updated,
+      );
+      return aiCount > 0
+          ? 'Đã dịch sát ngữ cảnh $aiCount từ bằng Gemini AI & lưu cache!'
+          : 'Không nhận được phản hồi từ Gemini API. Kiểm tra lại API Key hoặc mạng.';
+    } catch (e) {
+      state = state.copyWith(isTranslatingAi: false);
+      return 'Lỗi dịch AI: $e';
+    }
   }
 
   void toggleSelectAll() {

@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import '../../../../core/database/local_database.dart';
 import '../../../../core/srs/fsrs_scheduler.dart';
+import '../../../pronunciation/data/services/pronunciation_assessment_service.dart';
+import '../../../pronunciation/domain/entities/pronunciation_result.dart';
 import '../../domain/entities/study_stats.dart';
 import '../../domain/repositories/i_stats_repository.dart';
 
@@ -137,6 +141,73 @@ class StatsRepository implements IStatsRepository {
       upcoming[diffDays] = (upcoming[diffDays] ?? 0) + 1;
     }
 
+    // 6. Pronunciation assessment average & Top Weak Phonemes
+    double? avgPronunciationScore;
+    int totalPronunciationAttempts = 0;
+    final weakPhonemes = <WeakPhonemeStat>[];
+    try {
+      final pronRows = await db.query(
+        'pronunciation_logs',
+        columns: const ['overall_score', 'phonemes_json'],
+        orderBy: 'assessed_at DESC',
+        limit: 300,
+      );
+      totalPronunciationAttempts = pronRows.length;
+      if (pronRows.isNotEmpty) {
+        double sumScore = 0;
+        final phonemeSums = <String, double>{};
+        final phonemeCounts = <String, int>{};
+        final phonemeMisses = <String, int>{};
+
+        for (final row in pronRows) {
+          sumScore += ((row['overall_score'] as num?) ?? 0).toDouble();
+          final rawJson = (row['phonemes_json'] as String?) ?? '[]';
+          try {
+            final decoded = jsonDecode(rawJson);
+            if (decoded is List) {
+              for (final item in decoded) {
+                if (item is Map<String, dynamic>) {
+                  final sym = (item['target'] as String?)?.trim() ?? '';
+                  final sc = ((item['score'] as num?) ?? 0).toDouble();
+                  final isDelim = (item['isDelimiter'] as bool?) ?? false;
+                  if (sym.isEmpty || isDelim) continue;
+                  phonemeSums[sym] = (phonemeSums[sym] ?? 0) + sc;
+                  phonemeCounts[sym] = (phonemeCounts[sym] ?? 0) + 1;
+                  if (sc < 65) {
+                    phonemeMisses[sym] = (phonemeMisses[sym] ?? 0) + 1;
+                  }
+                }
+              }
+            }
+          } catch (_) {}
+        }
+
+        avgPronunciationScore = sumScore / pronRows.length;
+
+        final statsList = phonemeCounts.entries.map((entry) {
+          final sym = entry.key;
+          final cnt = entry.value;
+          final avg = (phonemeSums[sym] ?? 0) / cnt;
+          return WeakPhonemeStat(
+            phoneme: sym,
+            averageScore: avg,
+            attempts: cnt,
+            missCount: phonemeMisses[sym] ?? 0,
+            tip: PronunciationAssessmentService.diagnosticTipForPhoneme(sym),
+          );
+        }).toList()
+          ..sort((a, b) {
+            final scoreCmp = a.averageScore.compareTo(b.averageScore);
+            if (scoreCmp != 0) return scoreCmp;
+            return b.missCount.compareTo(a.missCount);
+          });
+
+        weakPhonemes.addAll(statsList.take(5));
+      }
+    } catch (_) {
+      // Safe fallback if pronunciation_logs hasn't been created in legacy mocks
+    }
+
     return StudyStats(
       totalCards: totalCards,
       newCardsCount: newCnt,
@@ -150,6 +221,9 @@ class StatsRepository implements IStatsRepository {
       currentStreakDays: streak,
       dailyReviewCounts: dailyCounts,
       upcomingDueByDayOffset: upcoming,
+      averagePronunciationScore: avgPronunciationScore,
+      totalPronunciationAttempts: totalPronunciationAttempts,
+      weakPhonemes: weakPhonemes,
     );
   }
 }

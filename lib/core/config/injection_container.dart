@@ -11,6 +11,7 @@ import '../../features/nlp_extractor/data/repositories/nlp_extractor_repository_
 import '../../features/nlp_extractor/domain/repositories/nlp_extractor_repository.dart';
 import '../../features/nlp_extractor/domain/usecases/analyze_text_usecase.dart';
 import '../../features/nlp_extractor/domain/usecases/create_cards_from_tokens_usecase.dart';
+import '../../features/pronunciation/data/services/pronunciation_assessment_service.dart';
 import '../../features/settings/data/services/backup_service.dart';
 import '../../features/stats/data/repositories/stats_repository.dart';
 import '../../features/stats/domain/repositories/i_stats_repository.dart';
@@ -40,8 +41,14 @@ Future<void> initDependencies() async {
     () => SettingsRepository(sl()),
   );
 
-  // Audio TTS Cache & Notifications
+  // Audio TTS Cache, Pronunciation Assessment & Notifications
   sl.registerLazySingleton<TtsCacheService>(() => TtsCacheService());
+  sl.registerLazySingleton<PronunciationAssessmentService>(
+    () => PronunciationAssessmentService(
+      localDatabase: sl(),
+      ttsCacheService: sl(),
+    ),
+  );
   sl.registerLazySingleton<NotificationService>(() => NotificationService());
 
   // Feature: NLP Text Extractor

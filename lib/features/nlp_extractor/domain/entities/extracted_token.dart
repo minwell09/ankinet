@@ -46,6 +46,8 @@ class ExtractedToken extends Equatable {
   final List<RadicalComponent> radicals;
   final bool isAlreadySaved;
   final bool isFromOfflineBundle;
+  final String translationSource; // 'DB' or 'AI'
+  final String sentenceTranslation;
 
   const ExtractedToken({
     required this.surfaceWord,
@@ -61,6 +63,8 @@ class ExtractedToken extends Equatable {
     required this.radicals,
     this.isAlreadySaved = false,
     this.isFromOfflineBundle = false,
+    this.translationSource = 'DB',
+    this.sentenceTranslation = '',
   });
 
   String get effectivePhoneticUs =>
@@ -80,6 +84,8 @@ class ExtractedToken extends Equatable {
     List<RadicalComponent>? radicals,
     bool? isAlreadySaved,
     bool? isFromOfflineBundle,
+    String? translationSource,
+    String? sentenceTranslation,
   }) {
     return ExtractedToken(
       surfaceWord: surfaceWord ?? this.surfaceWord,
@@ -95,6 +101,8 @@ class ExtractedToken extends Equatable {
       radicals: radicals ?? this.radicals,
       isAlreadySaved: isAlreadySaved ?? this.isAlreadySaved,
       isFromOfflineBundle: isFromOfflineBundle ?? this.isFromOfflineBundle,
+      translationSource: translationSource ?? this.translationSource,
+      sentenceTranslation: sentenceTranslation ?? this.sentenceTranslation,
     );
   }
 
@@ -113,5 +121,7 @@ class ExtractedToken extends Equatable {
         radicals,
         isAlreadySaved,
         isFromOfflineBundle,
+        translationSource,
+        sentenceTranslation,
       ];
 }

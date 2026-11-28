@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +13,7 @@ import '../../../decks/presentation/widgets/card_edit_dialog.dart';
 import '../../../settings/presentation/providers/settings_provider.dart';
 import '../../../stats/presentation/providers/stats_provider.dart';
 import '../providers/study_session_provider.dart';
+import '../widgets/tcg_flashcard_face.dart';
 
 class StudySessionPage extends ConsumerStatefulWidget {
   final String deckId;
@@ -292,253 +295,63 @@ class _StudySessionPageState extends ConsumerState<StudySessionPage> {
                     ),
                   );
                 },
-                child: SingleChildScrollView(
+                child: LayoutBuilder(
                   key: ValueKey('${card.id}_${session.currentIndex}'),
-                  clipBehavior: Clip.none,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 640),
-                      child: PixelFlipCard(
-                        isFlipped: session.showAnswer,
-                        onFlipChanged: (flipped) =>
-                            notifier.setFlipped(flipped, settings),
-                    front: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            PixelBadge(
-                              label: 'FRONT • CÂU HỎI',
-                              backgroundColor: px.surfaceAlt,
+                  builder: (context, constraints) {
+                    const double tcgAspectRatio = 0.70;
+                    final double maxH =
+                        (constraints.maxHeight - 8).clamp(320.0, 660.0);
+                    final double maxW =
+                        (constraints.maxWidth - 8).clamp(240.0, 460.0);
+                    final double cardW =
+                        math.min(maxW, maxH * tcgAspectRatio);
+                    final double cardH = cardW / tcgAspectRatio;
+
+                    return Center(
+                      child: SizedBox(
+                        width: cardW,
+                        height: cardH,
+                        child: PixelFlipCard(
+                          useCustomFrame: true,
+                          isFlipped: session.showAnswer,
+                          onFlipChanged: (flipped) =>
+                              notifier.setFlipped(flipped, settings),
+                          front: TcgFlashcardFace(
+                            card: card,
+                            isBack: false,
+                            cardIndex: session.currentIndex,
+                            totalCards: total,
+                            targetAccent: settings.targetAccent,
+                            showClozeContext: settings.showClozeContext,
+                            relatedWords: session.relatedWords,
+                            onSpeakAccent: (accent) => notifier.speakWord(
+                              card.word,
+                              audioUrl:
+                                  accent == 'en-US' ? card.audioUrl : null,
+                              accent: accent,
                             ),
-                            PixelBadge(
-                              icon: Icons.swipe_rounded,
-                              label: 'CHẠM HOẶC VUỐT',
-                              backgroundColor: colorScheme.primaryContainer,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            PixelBadge(
-                              label: card.partOfSpeech.toUpperCase(),
-                              backgroundColor: px.surfaceAlt,
-                            ),
-                            if (card.stability > 0)
-                              PixelBadge(
-                                label:
-                                    'S=${card.stability.toStringAsFixed(1)}d',
-                                backgroundColor:
-                                    colorScheme.secondaryContainer,
-                              ),
-                            PixelBadge(
-                              label: 'D=${card.difficulty.toStringAsFixed(1)}',
-                              backgroundColor: colorScheme.tertiaryContainer,
-                            ),
-                            if (card.isLeech)
-                              PixelBadge(
-                                label: 'LEECH',
-                                backgroundColor: px.coral,
-                                foregroundColor: Colors.white,
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 28),
-                        Text(
-                          card.word,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(fontSize: 34),
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            if (card.effectivePhoneticUs.isNotEmpty)
-                              PixelBadge(
-                                icon: Icons.volume_up_rounded,
-                                label: 'US ${card.effectivePhoneticUs}',
-                                backgroundColor: colorScheme.primaryContainer,
-                                onTap: () => notifier.speakWord(
-                                  card.word,
-                                  audioUrl: card.audioUrl,
-                                  accent: 'en-US',
-                                ),
-                              ),
-                            if (card.phoneticUk.isNotEmpty)
-                              PixelBadge(
-                                icon: Icons.volume_up_rounded,
-                                label: 'UK ${card.phoneticUk}',
-                                backgroundColor: colorScheme.secondaryContainer,
-                                onTap: () => notifier.speakWord(
-                                  card.word,
-                                  accent: 'en-GB',
-                                ),
-                              ),
-                            if (card.effectivePhoneticUs.isEmpty &&
-                                card.phoneticUk.isEmpty)
-                              PixelBadge(
-                                icon: Icons.volume_up_rounded,
-                                label: 'PHÁT ÂM',
-                                onTap: () => notifier.speakWord(
-                                  card.word,
-                                  audioUrl: card.audioUrl,
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (settings.showClozeContext &&
-                            card.effectiveClozeSentence.isNotEmpty) ...[
-                          const SizedBox(height: 22),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: px.surfaceAlt,
-                              border: Border.all(color: px.border, width: 2),
-                            ),
-                            child: Text(
-                              card.effectiveClozeSentence,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(fontStyle: FontStyle.italic),
-                            ),
+                            onEnqueueRelated: notifier.enqueueRelatedCard,
                           ),
-                        ],
-                        const SizedBox(height: 12),
-                      ],
-                    ),
-                    back: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            PixelBadge(
-                              label: 'BACK • ĐÁP ÁN',
-                              backgroundColor: px.emerald,
-                              foregroundColor: Colors.white,
+                          back: TcgFlashcardFace(
+                            card: card,
+                            isBack: true,
+                            cardIndex: session.currentIndex,
+                            totalCards: total,
+                            targetAccent: settings.targetAccent,
+                            showClozeContext: settings.showClozeContext,
+                            relatedWords: session.relatedWords,
+                            onSpeakAccent: (accent) => notifier.speakWord(
+                              card.word,
+                              audioUrl:
+                                  accent == 'en-US' ? card.audioUrl : null,
+                              accent: accent,
                             ),
-                            PixelBadge(
-                              icon: Icons.flip_rounded,
-                              label: 'LẬT LẠI',
-                              backgroundColor: px.surfaceAlt,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          card.word,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineMedium
-                              ?.copyWith(fontSize: 28),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
-                          children: [
-                            if (card.effectivePhoneticUs.isNotEmpty)
-                              PixelBadge(
-                                icon: Icons.volume_up_rounded,
-                                label: 'US ${card.effectivePhoneticUs}',
-                                backgroundColor: colorScheme.primaryContainer,
-                                onTap: () => notifier.speakWord(
-                                  card.word,
-                                  audioUrl: card.audioUrl,
-                                  accent: 'en-US',
-                                ),
-                              ),
-                            if (card.phoneticUk.isNotEmpty)
-                              PixelBadge(
-                                icon: Icons.volume_up_rounded,
-                                label: 'UK ${card.phoneticUk}',
-                                backgroundColor: colorScheme.secondaryContainer,
-                                onTap: () => notifier.speakWord(
-                                  card.word,
-                                  accent: 'en-GB',
-                                ),
-                              ),
-                          ],
-                        ),
-                        const Divider(height: 26),
-                        Text(
-                          card.translation,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(color: px.primary, fontSize: 22),
-                        ),
-                        if (settings.showClozeContext &&
-                            card.contextSentence.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: px.surfaceAlt,
-                              border: Border.all(color: px.border, width: 2),
-                            ),
-                            child: Text(
-                              card.contextSentence,
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(fontStyle: FontStyle.italic),
-                            ),
+                            onEnqueueRelated: notifier.enqueueRelatedCard,
                           ),
-                        ],
-                        if (session.relatedWords.isNotEmpty) ...[
-                          const SizedBox(height: 18),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              'TỪ CÙNG GỐC TỪ (NHẤN ĐỂ ÔN KÈM):',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                color: px.inkMuted,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: session.relatedWords.map((rel) {
-                              return PixelBadge(
-                                icon: Icons.add_circle_outline,
-                                label:
-                                    '${rel.card.word} (${rel.sharedRadicals.join(', ')})',
-                                backgroundColor: colorScheme.tertiaryContainer,
-                                onTap: () =>
-                                    notifier.enqueueRelatedCard(rel.card),
-                              );
-                            }).toList(),
-                          ),
-                        ],
-                      ],
-                    ),
+                        ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ),

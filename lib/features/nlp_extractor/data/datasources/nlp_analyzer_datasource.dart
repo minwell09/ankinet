@@ -10,6 +10,7 @@ import '../../../../core/database/local_database.dart';
 import '../../../../core/database/offline_dictionary_database.dart';
 import '../../../../core/utils/cloze_masker.dart';
 import '../../../../core/utils/ipa_normalizer.dart';
+import '../../domain/entities/extracted_token.dart';
 import '../models/extracted_token_model.dart';
 
 enum LearningLanguageMode {
@@ -22,6 +23,14 @@ abstract class NlpAnalyzerDataSource {
     String rawText, {
     LearningLanguageMode mode = LearningLanguageMode.englishForVietnamese,
     bool enableOnlineLookup = true,
+  });
+
+  /// Tier 2: Single batched Gemini API call translating all extracted tokens
+  /// in context of [rawText] and caching results into `dict_cache` by `(word, sentence_hash)`.
+  Future<List<ExtractedToken>> translateBatchWithGemini({
+    required List<ExtractedToken> tokens,
+    required String rawText,
+    required String apiKey,
   });
 }
 
@@ -1462,24 +1471,123 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
     return enriched;
   }
 
-  /// Single-batch Gemini API request for up to 18 tokens at once.
+  /// Tier 2: Single batched Gemini API call for the entire extracted token list
+  /// + full passage context. Returns context-accurate Vietnamese meanings +
+  /// Vietnamese sentence translations and persists them to SQLite `dict_cache`
+  /// keyed by `(word, sentence_hash)`.
+  @override
+  Future<List<ExtractedToken>> translateBatchWithGemini({
+    required List<ExtractedToken> tokens,
+    required String rawText,
+    required String apiKey,
+  }) async {
+    if (tokens.isEmpty || apiKey.trim().isEmpty) return tokens;
+
+    final batchItems = tokens.take(30).map((t) {
+      return {
+        'word': t.surfaceWord,
+        'lemma': t.lemma,
+        'pos': t.partOfSpeech,
+        'sentence': t.sourceSentence,
+      };
+    }).toList();
+
+    final geminiResults = await _fetchGeminiBatchContextual(
+      items: batchItems,
+      apiKey: apiKey.trim(),
+      passage: rawText,
+    ).timeout(const Duration(seconds: 15), onTimeout: () => const {});
+
+    if (geminiResults.isEmpty) return tokens;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final db = localDatabase != null ? await localDatabase!.database : null;
+    final cacheBatch = db?.batch();
+
+    final updated = tokens.map((t) {
+      final hit = geminiResults[t.surfaceWord.toLowerCase()];
+      if (hit == null) return t;
+
+      final pos = (hit['pos'] ?? '').trim().isNotEmpty
+          ? hit['pos']!.trim()
+          : t.partOfSpeech;
+      final rawMeaning = (hit['meaning'] ?? '').trim();
+      final formattedMeaning = rawMeaning.isNotEmpty
+          ? (rawMeaning.startsWith('(') || pos.isEmpty
+              ? rawMeaning
+              : '($pos) $rawMeaning')
+          : t.translation;
+      final lemma = (hit['lemma'] ?? '').trim().isNotEmpty
+          ? hit['lemma']!.trim().toLowerCase()
+          : t.lemma;
+      final sentenceVi = (hit['sentence_vi'] ?? '').trim();
+
+      final next = t.copyWith(
+        lemma: lemma,
+        partOfSpeech: pos,
+        translation: formattedMeaning,
+        translationSource: 'AI',
+        sentenceTranslation: sentenceVi.isNotEmpty ? sentenceVi : t.sentenceTranslation,
+      );
+
+      if (cacheBatch != null) {
+        final sHash = computeSentenceHash(next.sourceSentence);
+        cacheBatch.insert(
+          'dict_cache',
+          {
+            'word': next.surfaceWord,
+            'sentence_hash': sHash,
+            'context_sentence': next.sourceSentence,
+            'lemma': next.lemma,
+            'phonetic': next.phonetic,
+            'phonetic_us': next.phoneticUs,
+            'phonetic_uk': next.phoneticUk,
+            'translation': next.translation,
+            'part_of_speech': next.partOfSpeech,
+            'audio_url': next.audioUrl,
+            'radicals_json': jsonEncode(
+              next.radicals.map((r) => r.toJson()).toList(),
+            ),
+            'updated_at': now,
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+      return next;
+    }).toList(growable: false);
+
+    if (cacheBatch != null) {
+      try {
+        await cacheBatch
+            .commit(noResult: true)
+            .timeout(const Duration(seconds: 3));
+      } catch (_) {}
+    }
+
+    return updated;
+  }
+
+  /// Single-batch Gemini API request for extracted tokens at once.
   /// Requests a structured JSON array:
-  /// `[{"word": "...", "lemma": "...", "pos": "...", "meaning": "...", "root": "..."}]`
+  /// `[{"word": "...", "lemma": "...", "pos": "...", "meaning": "...", "sentence_vi": "..."}]`
   /// to save tokens and prevent 429 rate-limit errors.
   Future<Map<String, Map<String, String>>> _fetchGeminiBatchContextual({
     required List<Map<String, String>> items,
     required String apiKey,
+    String passage = '',
   }) async {
     if (items.isEmpty || apiKey.isEmpty) return const {};
     try {
       final payloadJson = jsonEncode(items);
+      final passageBlock =
+          passage.trim().isNotEmpty ? 'Full passage:\n"${passage.trim()}"\n\n' : '';
       final prompt =
-          'For each English word/phrase in the JSON list below, provide its accurate '
-          'contextual Vietnamese meaning matching its exact sentence and grammatical role.\n'
+          '${passageBlock}For each English word/phrase in the JSON list below, provide its accurate '
+          'contextual Vietnamese meaning matching its exact sentence and grammatical role, plus a natural Vietnamese translation of its sentence.\n'
           'Input: $payloadJson\n'
           'Reply strictly as a JSON array of objects with keys: '
           '[{"word": "exact input word", "lemma": "base form", "pos": "noun|verb|adj|adv|phrase", '
-          '"meaning": "concise Vietnamese meaning in context", "root": "true etymological root or empty"}].';
+          '"meaning": "concise Vietnamese meaning in context", "sentence_vi": "natural Vietnamese translation of the sentence"}].';
 
       final response = await _dio.post<Map<String, dynamic>>(
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
@@ -1518,7 +1626,7 @@ class HybridNlpAnalyzerDataSourceImpl implements NlpAnalyzerDataSource {
             'lemma': (entry['lemma']?.toString() ?? '').trim(),
             'pos': (entry['pos']?.toString() ?? '').trim(),
             'meaning': (entry['meaning']?.toString() ?? '').trim(),
-            'root': (entry['root']?.toString() ?? '').trim(),
+            'sentence_vi': (entry['sentence_vi']?.toString() ?? '').trim(),
           };
         }
       }

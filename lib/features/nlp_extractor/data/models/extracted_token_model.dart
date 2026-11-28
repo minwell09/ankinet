@@ -15,6 +15,8 @@ class ExtractedTokenModel extends ExtractedToken {
     required super.radicals,
     super.isAlreadySaved,
     super.isFromOfflineBundle,
+    super.translationSource,
+    super.sentenceTranslation,
   });
 
   factory ExtractedTokenModel.fromJson(Map<String, dynamic> json) {
@@ -38,6 +40,8 @@ class ExtractedTokenModel extends ExtractedToken {
       radicals: radicalList,
       isAlreadySaved: (json['is_already_saved'] as bool?) ?? false,
       isFromOfflineBundle: (json['is_from_offline_bundle'] as bool?) ?? false,
+      translationSource: (json['translation_source'] as String?) ?? 'DB',
+      sentenceTranslation: (json['sentence_translation'] as String?) ?? '',
     );
   }
 }

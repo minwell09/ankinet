@@ -61,6 +61,9 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
     final mode = ref.watch(nlpExtractorNotifierProvider.select((s) => s.mode));
     final isAnalyzing =
         ref.watch(nlpExtractorNotifierProvider.select((s) => s.isAnalyzing));
+    final isTranslatingAi = ref.watch(
+      nlpExtractorNotifierProvider.select((s) => s.isTranslatingAi),
+    );
     final isSaving =
         ref.watch(nlpExtractorNotifierProvider.select((s) => s.isSaving));
     final tokens =
@@ -72,6 +75,8 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
         ref.watch(nlpExtractorNotifierProvider.select((s) => s.lastElapsedMs));
     final errorMessage =
         ref.watch(nlpExtractorNotifierProvider.select((s) => s.errorMessage));
+    final recentSnippets =
+        ref.watch(nlpExtractorNotifierProvider.select((s) => s.recentSnippets));
     final notifier = ref.read(nlpExtractorNotifierProvider.notifier);
 
     ref.listen<NlpExtractorState>(nlpExtractorNotifierProvider, (prev, next) {
@@ -94,17 +99,23 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
     });
 
     final isEnVi = mode == LearningLanguageMode.englishForVietnamese;
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final editorHeight =
+        tokens.isEmpty ? (screenHeight * 0.36).clamp(180.0, 300.0) : 112.0;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: Text(
-          isEnVi ? 'TÁCH TỪ NLP • EN ➔ VI' : 'NLP EXTRACTOR • CJK',
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: SegmentedButton<LearningLanguageMode>(
+        title: const Text('TÁCH TỪ NLP'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Mode Switcher moved cleanly below AppBar
+            SegmentedButton<LearningLanguageMode>(
+              showSelectedIcon: false,
               segments: const [
                 ButtonSegment(
                   value: LearningLanguageMode.englishForVietnamese,
@@ -112,7 +123,7 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
                 ),
                 ButtonSegment(
                   value: LearningLanguageMode.cjkRadicals,
-                  label: Text('BỘ THỦ'),
+                  label: Text('Bộ thủ'),
                 ),
               ],
               selected: {mode},
@@ -120,58 +131,83 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
                 notifier.setLanguageMode(selection.first);
               },
             ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+            const SizedBox(height: 12),
+
+            // Input Box with bottom-right Paste & Clear toolbar
             PixelCard(
-              woodFrame: true,
-              backgroundColor: px.cardParchment,
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextField(
-                    controller: _textController,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: isEnVi
-                          ? 'Dán đoạn văn / bài báo Tiếng Anh vào đây'
-                          : 'Paste article, subtitle, or sentence',
-                      hintText: isEnVi
-                          ? 'Tự động tách từ, phiên âm US/UK IPA, câu Cloze & nghĩa Tiếng Việt...'
-                          : 'Enter text to tokenize...',
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            tooltip: 'Dán nhanh (Quick Paste)',
-                            icon: const Icon(Icons.content_paste_rounded),
-                            onPressed: () => _quickPaste(notifier),
-                          ),
-                          IconButton(
-                            tooltip: 'Xóa nhanh',
-                            icon: const Icon(Icons.delete_outline_rounded),
-                            onPressed: _quickClear,
-                          ),
-                        ],
+                  Container(
+                    height: editorHeight,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFBF6EA),
+                      border: Border.all(
+                        color: px.border.withValues(alpha: 0.65),
+                        width: 1.5,
                       ),
                     ),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: TextField(
+                            controller: _textController,
+                            expands: true,
+                            maxLines: null,
+                            minLines: null,
+                            textAlignVertical: TextAlignVertical.top,
+                            style: const TextStyle(fontSize: 14, height: 1.45),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              filled: false,
+                              contentPadding: const EdgeInsets.fromLTRB(
+                                12,
+                                10,
+                                12,
+                                42,
+                              ),
+                              hintText: isEnVi
+                                  ? 'Dán đoạn văn hoặc bài báo Tiếng Anh để tách từ vựng, tra IPA & tạo câu Cloze...'
+                                  : 'Dán câu hoặc đoạn văn chữ Hán để tách bộ thủ...',
+                            ),
+                          ),
+                        ),
+                        // Bottom-right quick actions (Paste & Clear)
+                        Positioned(
+                          right: 6,
+                          bottom: 6,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _EditorActionIcon(
+                                icon: Icons.content_paste_rounded,
+                                tooltip: 'Dán nhanh',
+                                onTap: () => _quickPaste(notifier),
+                              ),
+                              const SizedBox(width: 6),
+                              _EditorActionIcon(
+                                icon: Icons.delete_outline_rounded,
+                                tooltip: 'Xóa',
+                                onTap: _quickClear,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   PixelButton(
                     expand: true,
                     backgroundColor: px.primary,
-                    icon: isAnalyzing ? Icons.hourglass_top : Icons.psychology,
+                    foregroundColor: px.ink,
+                    icon: isAnalyzing ? Icons.hourglass_top : Icons.bolt,
                     label: isAnalyzing
-                        ? 'ĐANG PHÂN TÍCH VĂN BẢN...'
-                        : (isEnVi
-                            ? 'PHÂN TÍCH (OFFLINE SQLITE + CACHE)'
-                            : 'TOKENIZE & TRANSCRIBE'),
+                        ? 'ĐANG PHÂN TÍCH...'
+                        : 'PHÂN TÍCH VĂN BẢN',
                     onPressed: isAnalyzing
                         ? null
                         : () => notifier.analyzeText(
@@ -182,11 +218,12 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             if (errorMessage != null && errorMessage.isNotEmpty)
               PixelCard(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.only(bottom: 10),
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                padding: const EdgeInsets.all(10),
                 child: Row(
                   children: [
                     Expanded(child: Text(errorMessage)),
@@ -201,40 +238,152 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
                 ),
               ),
             if (tokens.isNotEmpty) ...[
+              // Tier 2 AI contextual translation bar + elapsed badge
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        PixelBadge(
-                          label: 'CHỌN: $selectedCount / ${tokens.length}',
-                          backgroundColor: px.gold,
-                          foregroundColor: const Color(0xFF1E1B2E),
-                        ),
-                        if (elapsedMs != null)
-                          PixelBadge(
-                            label: '${elapsedMs}ms',
-                            backgroundColor: px.surfaceAlt,
-                          ),
-                      ],
+                  if (elapsedMs != null)
+                    PixelBadge(
+                      label: 'SQLite ${elapsedMs}ms',
+                      backgroundColor: px.surfaceAlt,
                     ),
-                  ),
-                  TextButton.icon(
-                    onPressed: notifier.toggleSelectAll,
-                    icon: const Icon(Icons.select_all, size: 18),
-                    label: Text(
-                      selectedCount == tokens.length
-                          ? 'Bỏ chọn hết'
-                          : 'Chọn tất cả',
+                  const Spacer(),
+                  if (isEnVi)
+                    PixelButton(
+                      label: isTranslatingAi
+                          ? 'ĐANG DỊCH AI...'
+                          : 'Dịch sát ngữ cảnh',
+                      icon: Icons.auto_awesome_rounded,
+                      backgroundColor: px.cyan,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      onPressed: isTranslatingAi
+                          ? null
+                          : () async {
+                              final msg =
+                                  await notifier.translateContextWithAi();
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(msg)),
+                              );
+                            },
                     ),
-                  ),
                 ],
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
+
+              // Sticky top batch control bar: [☑ Chọn tất cả] • [Bộ thẻ ▾] • [+ LƯU X THẺ]
+              Builder(
+                builder: (context) {
+                  final decks =
+                      ref.watch(deckListProvider).valueOrNull ?? const [];
+                  final effectiveDeckId =
+                      decks.any((d) => d.id == _selectedDeckId)
+                          ? _selectedDeckId!
+                          : (decks.isNotEmpty ? decks.first.id : 'default_deck');
+                  final allSelected = selectedCount == tokens.length;
+
+                  return PixelCard(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: notifier.toggleSelectAll,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                allSelected
+                                    ? Icons.check_box_rounded
+                                    : Icons.check_box_outline_blank_rounded,
+                                size: 20,
+                                color: allSelected ? px.emerald : px.inkMuted,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                allSelected ? 'Bỏ chọn' : 'Tất cả',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: px.ink,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (decks.isNotEmpty)
+                          Expanded(
+                            child: Container(
+                              height: 32,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 6),
+                              decoration: BoxDecoration(
+                                color: px.surfaceAlt,
+                                border: Border.all(
+                                  color: px.border.withValues(alpha: 0.45),
+                                  width: 1,
+                                ),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  isExpanded: true,
+                                  isDense: true,
+                                  value: effectiveDeckId,
+                                  items: decks.map((d) {
+                                    return DropdownMenuItem<String>(
+                                      value: d.id,
+                                      child: Text(
+                                        d.name,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() => _selectedDeckId = val);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          const Spacer(),
+                        const SizedBox(width: 8),
+                        PixelButton(
+                          backgroundColor: px.emerald,
+                          foregroundColor: Colors.white,
+                          icon: Icons.add_rounded,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          label: isSaving
+                              ? 'ĐANG LƯU...'
+                              : 'LƯU $selectedCount THẺ',
+                          onPressed: selectedCount == 0 || isSaving
+                              ? null
+                              : () => notifier.createSelectedCards(
+                                    deckId: effectiveDeckId,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+
               Expanded(
                 child: ListView.builder(
                   itemCount: tokens.length,
@@ -243,103 +392,169 @@ class _NlpExtractorPageState extends ConsumerState<NlpExtractorPage> {
                   },
                 ),
               ),
-              const SizedBox(height: 10),
-              Builder(
-                builder: (context) {
-                  final decks =
-                      ref.watch(deckListProvider).valueOrNull ?? const [];
-                  final effectiveDeckId = decks.any((d) => d.id == _selectedDeckId)
-                      ? _selectedDeckId!
-                      : (decks.isNotEmpty ? decks.first.id : 'default_deck');
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (decks.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
+            ] else
+              Expanded(
+                child: recentSnippets.isNotEmpty
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'ĐOẠN VĂN ĐÃ TÁCH GẦN ĐÂY',
+                            style: TextStyle(
+                              fontFamily: AppTheme.pixelDisplayFont,
+                              fontFamilyFallback: AppTheme.fontFallback,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: px.inkOnWood.withValues(alpha: 0.9),
+                              letterSpacing: 0.4,
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: px.surface,
-                            border: Border.all(color: px.border, width: 2),
+                          const SizedBox(height: 8),
+                          Expanded(
+                            child: ListView.separated(
+                              itemCount: recentSnippets.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final item = recentSnippets[index];
+                                return PixelCard(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 10,
+                                  ),
+                                  onTap: () {
+                                    _textController.text = item.text;
+                                    notifier.analyzeText(
+                                      item.text,
+                                      deckId: _resolveSelectedDeckId(),
+                                    );
+                                  },
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.history_rounded,
+                                        size: 18,
+                                        color: px.primaryBorder,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          item.text,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(color: px.ink),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '${item.tokenCount} từ',
+                                        style: TextStyle(
+                                          fontFamily: AppTheme.monoFont,
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: px.emerald,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
+                        ],
+                      )
+                    : Align(
+                        alignment: Alignment.topCenter,
+                        child: PixelCard(
+                          padding: const EdgeInsets.all(14),
                           child: Row(
                             children: [
-                              Text(
-                                'LƯU VÀO BỘ THẺ:',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: px.inkMuted,
+                              Container(
+                                width: 40,
+                                height: 40,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: px.primary.withValues(alpha: 0.22),
+                                  border: Border.all(
+                                    color: px.border,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.auto_stories_rounded,
+                                  color: px.primaryBorder,
+                                  size: 22,
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 12),
                               Expanded(
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    isExpanded: true,
-                                    isDense: true,
-                                    value: effectiveDeckId,
-                                    items: decks.map((d) {
-                                      return DropdownMenuItem<String>(
-                                        value: d.id,
-                                        child: Text(
-                                          d.name,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      );
-                                    }).toList(),
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        setState(() => _selectedDeckId = val);
-                                      }
-                                    },
-                                  ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'MẸO TÁCH TỪ NHANH',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      isEnVi
+                                          ? 'Dán đoạn báo hoặc phụ đề vào khung trên để tự động lấy IPA Anh-Mỹ, nghĩa Việt và câu điền khuyết.'
+                                          : 'Dán câu chữ Hán để tách bộ thủ và lưu nhanh thành thẻ học.',
+                                      style:
+                                          Theme.of(context).textTheme.bodySmall,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 8),
-                      ],
-                      PixelButton(
-                        expand: true,
-                        backgroundColor: px.emerald,
-                        icon: Icons.add_card,
-                        label: isSaving
-                            ? 'ĐANG LƯU THẺ...'
-                            : 'LƯU $selectedCount THẺ FSRS (KÈM CÂU CLOZE)',
-                        onPressed: selectedCount == 0 || isSaving
-                            ? null
-                            : () => notifier.createSelectedCards(
-                                  deckId: effectiveDeckId,
-                                ),
                       ),
-                    ],
-                  );
-                },
-              ),
-            ] else
-              Expanded(
-                child: Center(
-                  child: PixelCard(
-                    backgroundColor: px.surfaceAlt,
-                    child: Text(
-                      isEnVi
-                          ? 'Nhấn Dán nhanh hoặc PHÂN TÍCH ở trên để tách từ vựng, tra US/UK IPA và tạo câu điền khuyết (Cloze).'
-                          : 'Tap Quick Paste or Analyze above to tokenize text and create flashcards.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditorActionIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+
+  const _EditorActionIcon({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final px = PixelColors.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: px.surfaceAlt,
+            border: Border.all(
+              color: px.border.withValues(alpha: 0.55),
+              width: 1.5,
+            ),
+          ),
+          child: Icon(icon, size: 17, color: px.ink),
         ),
       ),
     );
@@ -364,6 +579,9 @@ class _TokenRowConsumer extends ConsumerWidget {
       onTap: () => ref
           .read(nlpExtractorNotifierProvider.notifier)
           .toggleWordSelection(word),
+      onEditTranslation: (newVal) => ref
+          .read(nlpExtractorNotifierProvider.notifier)
+          .updateTokenTranslation(word, newVal),
     );
   }
 }

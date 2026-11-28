@@ -3,12 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/config/app_theme.dart';
 import '../../../../core/config/injection_container.dart';
 import '../../../../core/database/local_database.dart';
 import '../../../../core/database/offline_dictionary_database.dart';
 import '../../../../core/services/tts_cache_service.dart';
 import '../../../../core/settings/study_settings.dart';
 import '../../../../core/srs/fsrs_weight_optimizer.dart';
+import '../../../../core/ui/pixel_widgets.dart';
 import '../../../../core/utils/file_export.dart';
 import '../../../decks/presentation/providers/deck_provider.dart';
 import '../../../stats/presentation/providers/stats_provider.dart';
@@ -36,6 +38,8 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _isBusy = false;
   bool _isOptimizingFsrs = false;
+  bool _showDictDetails = false;
+  bool _showFsrsWeights = false;
   FsrsOptimizationResult? _lastOptResult;
   final TextEditingController _geminiKeyCtrl = TextEditingController();
   bool _geminiKeyInitialized = false;
@@ -216,12 +220,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final revlogCountAsync = ref.watch(revlogCountProvider);
     final notifier = ref.read(studySettingsProvider.notifier);
     final ttsService = sl<TtsCacheService>();
+    final px = PixelColors.of(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Cài Đặt FSRS • Từ Điển SQLite • Backup'),
+        title: const Text('CÀI ĐẶT'),
       ),
       body: settingsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -233,6 +238,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           }
 
           final dictMeta = dictMetaAsync.valueOrNull ?? const {};
+          final totalEntries = dictMeta['total_entries'] ?? '205,066';
           final revlogCount = revlogCountAsync.valueOrNull ?? 0;
           final progressTo1000 =
               (revlogCount / FsrsWeightOptimizer.recommendedMinReviews)
@@ -246,456 +252,567 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               : 'Chưa từng sao lưu';
 
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
             children: [
-              // 1. Offline SQLite Dictionary (185k words) & Contextual Translation Pipeline
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '📚 Từ Điển SQLite Offline (185k+ từ) & Chuỗi Dịch Ngữ Cảnh',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+              // 1. Study Parameters & Daily Limits FIRST (most frequently used)
+              PixelCard(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PixelSectionHeader(
+                      title: 'THAM SỐ HỌC & GIỚI HẠN HÀNG NGÀY',
+                      icon: Icons.tune_rounded,
+                      accentColor: px.primary,
+                    ),
+                    const SizedBox(height: 12),
+                    _SliderRow(
+                      label: 'Thẻ mới mỗi ngày',
+                      valueText: '${settings.newCardsPerDay} thẻ',
+                      value: settings.newCardsPerDay.toDouble(),
+                      min: 5,
+                      max: 100,
+                      divisions: 19,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(newCardsPerDay: v.round()),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '• Đóng gói riêng trong file SQLite asset (assets/nlp/offline_dict.db — không parse JSON lớn vào RAM):\n'
-                        '  - Tổng mục từ: ${dictMeta['total_entries'] ?? '185,189'} từ Tiếng Anh\n'
-                        '  - Định nghĩa EN ➔ VI: ${dictMeta['vi_entries'] ?? '104,717'} mục từ\n'
-                        '  - Phiên âm IPA (Wiktionary + CMUdict): ${dictMeta['ipa_entries'] ?? '185,189'} mục\n'
-                        '  - Bất quy tắc WordNet (Irregular Lemmas): ${dictMeta['irregular_lemmas'] ?? '5,519'} cặp\n'
-                        '• Chuỗi dịch nghĩa: Từ điển SQLite Offline ➔ API/LLM (gửi kèm cả câu + glossary gốc từ) ➔ Lưu vào dict_cache theo (từ, hash câu).\n'
-                        '• Giấy phép dữ liệu: ${dictMeta['license'] ?? 'CC BY-SA 4.0 (Wiktionary / MinhQND / WikDict / Skypedia) + CMUdict BSD + Princeton WordNet 3.0'}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    _SliderRow(
+                      label: 'Lượt ôn tối đa mỗi ngày',
+                      valueText: '${settings.maxReviewsPerDay} lượt',
+                      value: settings.maxReviewsPerDay.toDouble(),
+                      min: 20,
+                      max: 500,
+                      divisions: 24,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(maxReviewsPerDay: v.round()),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: _geminiKeyCtrl,
-                              obscureText: true,
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                                labelText:
-                                    'Gemini API Key (Tùy chọn — dịch theo ngữ cảnh câu + glossary)',
-                                hintText: 'AIzaSy... (Để trống sẽ dùng Google Translate GTX)',
+                    ),
+                    _SliderRow(
+                      label: 'Mục tiêu tỉ lệ nhớ (Retention)',
+                      valueText:
+                          '${(settings.desiredRetention * 100).round()}%',
+                      value: settings.desiredRetention,
+                      min: 0.80,
+                      max: 0.96,
+                      divisions: 16,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(desiredRetention: v),
+                      ),
+                    ),
+                    _SliderRow(
+                      label: 'Ngưỡng thẻ Leech (số lần quên)',
+                      valueText: '${settings.leechThreshold} lần',
+                      value: settings.leechThreshold.toDouble(),
+                      min: 3,
+                      max: 12,
+                      divisions: 9,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(leechThreshold: v.round()),
+                      ),
+                    ),
+                    const Divider(height: 16),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text(
+                        'Tự động tạm ẩn thẻ Leech',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text(
+                        'Tạm ẩn thẻ khi số lần quên vượt ngưỡng đã đặt.',
+                      ),
+                      value: settings.suspendLeeches,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(suspendLeeches: v),
+                      ),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text(
+                        'Hiện câu điền khuyết (Cloze) mặt trước',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text(
+                        'Tự động che đúng dạng từ xuất hiện trong câu ngữ cảnh.',
+                      ),
+                      value: settings.showClozeContext,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(showClozeContext: v),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 2. Offline Dictionary & AI Contextual Translation (collapsed details)
+              PixelCard(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PixelSectionHeader(
+                      title: 'TỪ ĐIỂN OFFLINE & AI DỊCH NGỮ CẢNH',
+                      icon: Icons.menu_book_rounded,
+                      accentColor: px.cyan,
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          color: px.emerald,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$totalEntries từ • Sẵn sàng',
+                            style: TextStyle(
+                              fontFamily: AppTheme.monoFont,
+                              fontFamilyFallback: AppTheme.fontFallback,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: px.ink,
+                            ),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => setState(
+                            () => _showDictDetails = !_showDictDetails,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 2,
+                            ),
+                            child: Text(
+                              _showDictDetails
+                                  ? 'Ẩn chi tiết ▴'
+                                  : 'Chi tiết dữ liệu ▾',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: px.primaryBorder,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          FilledButton.tonal(
+                        ),
+                      ],
+                    ),
+                    if (_showDictDetails) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        color: px.surfaceAlt,
+                        child: Text(
+                          '• Tổng mục từ Tiếng Anh: $totalEntries\n'
+                          '• Định nghĩa EN → VI: ${dictMeta['vi_entries'] ?? '104,717'} mục\n'
+                          '• Phiên âm IPA (Wiktionary + CMUdict): ${dictMeta['ipa_entries'] ?? totalEntries} mục\n'
+                          '• Bất quy tắc WordNet: ${dictMeta['irregular_lemmas'] ?? '5,519'} cặp\n'
+                          '• Giấy phép: ${dictMeta['license'] ?? 'CC BY-SA 4.0 (Wiktionary) + CMUdict BSD + WordNet 3.0'}',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _geminiKeyCtrl,
+                            obscureText: true,
+                            style: const TextStyle(fontSize: 13.5),
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              labelText: 'Gemini API Key (Tùy chọn)',
+                              hintText: 'Để trống dùng Google Translate',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        PixelButton(
+                          label: 'LƯU KEY',
+                          backgroundColor: px.primary,
+                          foregroundColor: px.ink,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 11,
+                          ),
+                          onPressed: () async {
+                            await notifier.updateSettings(
+                              settings.copyWith(
+                                geminiApiKey: _geminiKeyCtrl.text.trim(),
+                              ),
+                            );
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Đã lưu cấu hình Gemini API Key!',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // 3. FSRS-4.5 Personal Optimizer (Full-width title, hidden w[0..16])
+              PixelCard(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PixelSectionHeader(
+                      title: 'TỐI ƯU FSRS-4.5 CÁ NHÂN',
+                      icon: Icons.auto_graph_rounded,
+                      accentColor: px.emerald,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$revlogCount / ${FsrsWeightOptimizer.recommendedMinReviews} lượt ôn',
+                            style: TextStyle(
+                              fontFamily: AppTheme.monoFont,
+                              fontFamilyFallback: AppTheme.fontFallback,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: px.ink,
+                            ),
+                          ),
+                        ),
+                        PixelBadge(
+                          label: settings.hasCustomFsrsWeights
+                              ? 'CÁ NHÂN'
+                              : 'MẶC ĐỊNH',
+                          backgroundColor: settings.hasCustomFsrsWeights
+                              ? colorScheme.tertiaryContainer
+                              : px.surfaceAlt,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    PixelProgressBar(
+                      progress: progressTo1000,
+                      fillColor: px.emerald,
+                      height: 12,
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      revlogCount >= FsrsWeightOptimizer.recommendedMinReviews
+                          ? 'Đã đủ dữ liệu lịch sử ôn để tối ưu đường cong quên cá nhân.'
+                          : 'Khuyến nghị ~1,000 lượt ôn để khớp chính xác nhất (vẫn có thể chạy thử sớm).',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    if (_lastOptResult != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Kết quả gần nhất: ${_lastOptResult!.usableTransitions} chuyển đổi • '
+                        'Log-Loss ${_lastOptResult!.initialLogLoss.toStringAsFixed(4)} → ${_lastOptResult!.optimizedLogLoss.toStringAsFixed(4)} '
+                        '(${_lastOptResult!.improvementPercent.toStringAsFixed(1)}%)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: px.emerald,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 10),
+                    PixelButton(
+                      expand: true,
+                      backgroundColor: px.primary,
+                      foregroundColor: px.ink,
+                      icon: Icons.auto_graph_rounded,
+                      label: _isOptimizingFsrs
+                          ? 'ĐANG TỐI ƯU...'
+                          : 'TỐI ƯU TRỌNG SỐ FSRS',
+                      onPressed: _isOptimizingFsrs
+                          ? null
+                          : () => _runFsrsOptimization(settings),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        InkWell(
+                          onTap: () => setState(
+                            () => _showFsrsWeights = !_showFsrsWeights,
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Text(
+                              _showFsrsWeights
+                                  ? 'Ẩn tham số nâng cao ▴'
+                                  : 'Xem tham số nâng cao ▾',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: px.primaryBorder,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (settings.hasCustomFsrsWeights)
+                          TextButton.icon(
                             onPressed: () async {
                               await notifier.updateSettings(
                                 settings.copyWith(
-                                  geminiApiKey: _geminiKeyCtrl.text.trim(),
+                                  clearCustomFsrsWeights: true,
                                 ),
                               );
                               if (!context.mounted) return;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text(
-                                    'Đã lưu cấu hình Gemini API Key cho bộ dịch ngữ cảnh!',
+                                    'Đã khôi phục trọng số FSRS mặc định!',
                                   ),
                                 ),
                               );
                             },
-                            child: const Text('Lưu Key'),
+                            icon: const Icon(Icons.restore, size: 16),
+                            label: const Text('Khôi phục mặc định'),
                           ),
-                        ],
+                      ],
+                    ),
+                    if (_showFsrsWeights) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        color: px.surfaceAlt,
+                        child: SelectableText(
+                          'w[0..16]: [${settings.effectiveFsrsWeights.map((w) => w.toStringAsFixed(4)).join(', ')}]',
+                          style: TextStyle(
+                            fontFamily: AppTheme.monoFont,
+                            fontFamilyFallback: AppTheme.fontFallback,
+                            fontSize: 11.5,
+                            color: px.ink,
+                          ),
+                        ),
                       ),
                     ],
-                  ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // 2. Personal 17-Weight FSRS-4.5 Optimizer from revlog
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '🎯 Tối Ưu Bộ 17 Trọng Số FSRS Cá Nhân (Từ revlog)',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          Chip(
-                            visualDensity: VisualDensity.compact,
-                            backgroundColor: settings.hasCustomFsrsWeights
-                                ? colorScheme.tertiaryContainer
-                                : colorScheme.surfaceContainerHighest,
-                            label: Text(
-                              settings.hasCustomFsrsWeights
-                                  ? 'Đang dùng 17-Weight Cá Nhân'
-                                  : 'Đang dùng 17-Weight Mặc Định',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ),
-                        ],
+              // 4. Backup & Import/Export Anki
+              PixelCard(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PixelSectionHeader(
+                      title: 'SAO LƯU & IMPORT / EXPORT',
+                      icon: Icons.inventory_2_outlined,
+                      accentColor: px.gold,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sao lưu gần nhất: $lastBackupText',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    _SliderRow(
+                      label: 'Chu kỳ nhắc sao lưu JSON',
+                      valueText: '${settings.backupReminderDays} ngày',
+                      value: settings.backupReminderDays.toDouble(),
+                      min: 1,
+                      max: 14,
+                      divisions: 13,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(backupReminderDays: v.round()),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Tiến độ dữ liệu revlog: $revlogCount / ${FsrsWeightOptimizer.recommendedMinReviews} lượt ôn khuyến nghị '
-                        '(${revlogCount >= FsrsWeightOptimizer.recommendedMinReviews ? "Đã đủ dữ liệu tối ưu chuẩn!" : "Khi đạt ~1,000 lượt ôn, bộ tối ưu sẽ khớp chính xác đường cong quên của riêng bạn; hiện có thể chạy thử với L2 regularization"}).',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 8),
-                      LinearProgressIndicator(
-                        value: progressTo1000,
-                        minHeight: 8,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      const SizedBox(height: 10),
-                      SelectableText(
-                        'w[0..16] hiện tại: [${settings.effectiveFsrsWeights.map((w) => w.toStringAsFixed(4)).join(', ')}]',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontFamily: 'monospace',
-                            ),
-                      ),
-                      if (_lastOptResult != null) ...[
-                        const SizedBox(height: 6),
-                        Text(
-                          'Kết quả tối ưu gần nhất: ${_lastOptResult!.usableTransitions} cặp chuyển trạng thái • '
-                          'Log-Loss: ${_lastOptResult!.initialLogLoss.toStringAsFixed(4)} ➔ ${_lastOptResult!.optimizedLogLoss.toStringAsFixed(4)} '
-                          '(Cải thiện ${_lastOptResult!.improvementPercent.toStringAsFixed(2)}%)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.primary,
-                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        PixelButton(
+                          label: 'SAO LƯU JSON',
+                          icon: Icons.save_alt,
+                          backgroundColor: px.emerald,
+                          foregroundColor: Colors.white,
+                          onPressed: _isBusy ? null : _exportBackupJson,
+                        ),
+                        PixelButton(
+                          label: 'XUẤT .APKG',
+                          icon: Icons.archive_outlined,
+                          backgroundColor: px.surfaceAlt,
+                          foregroundColor: px.ink,
+                          onPressed: _isBusy ? null : _exportAnkiApkg,
+                        ),
+                        PixelButton(
+                          label: 'XUẤT CSV',
+                          icon: Icons.table_chart_outlined,
+                          backgroundColor: px.surfaceAlt,
+                          foregroundColor: px.ink,
+                          onPressed: _isBusy ? null : _exportAnkiCsv,
+                        ),
+                        PixelButton(
+                          label: 'NHẬP FILE',
+                          icon: Icons.upload_file,
+                          backgroundColor: px.primary,
+                          foregroundColor: px.ink,
+                          onPressed: _isBusy ? null : _importFile,
                         ),
                       ],
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          FilledButton.icon(
-                            onPressed: _isOptimizingFsrs
-                                ? null
-                                : () => _runFsrsOptimization(settings),
-                            icon: const Icon(Icons.auto_graph),
-                            label: Text(
-                              _isOptimizingFsrs
-                                  ? 'Đang tối ưu 17 trọng số (Isolate)...'
-                                  : 'Tối ưu 17 trọng số FSRS từ revlog',
-                            ),
-                          ),
-                          if (settings.hasCustomFsrsWeights)
-                            OutlinedButton.icon(
-                              onPressed: () async {
-                                await notifier.updateSettings(
-                                  settings.copyWith(
-                                    clearCustomFsrsWeights: true,
-                                  ),
-                                );
-                                if (!context.mounted) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Đã khôi phục 17 trọng số FSRS-4.5 mặc định!',
-                                    ),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.restore),
-                              label: const Text('Khôi phục 17 trọng số mặc định'),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // 3. FSRS & Daily Limits
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '🧠 Tham Số Học FSRS-4.5 & Giới Hạn Hàng Ngày',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 12),
-                      _SliderRow(
-                        label: 'Giới hạn thẻ mới / ngày',
-                        valueText: '${settings.newCardsPerDay} thẻ',
-                        value: settings.newCardsPerDay.toDouble(),
-                        min: 5,
-                        max: 100,
-                        divisions: 19,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(newCardsPerDay: v.round()),
-                        ),
-                      ),
-                      _SliderRow(
-                        label: 'Giới hạn lượt ôn tối đa / ngày',
-                        valueText: '${settings.maxReviewsPerDay} lượt',
-                        value: settings.maxReviewsPerDay.toDouble(),
-                        min: 20,
-                        max: 500,
-                        divisions: 24,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(maxReviewsPerDay: v.round()),
-                        ),
-                      ),
-                      _SliderRow(
-                        label: 'Mục tiêu tỉ lệ nhớ FSRS (Desired Retention)',
-                        valueText:
-                            '${(settings.desiredRetention * 100).round()}%',
-                        value: settings.desiredRetention,
-                        min: 0.80,
-                        max: 0.96,
-                        divisions: 16,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(desiredRetention: v),
-                        ),
-                      ),
-                      _SliderRow(
-                        label: 'Ngưỡng đánh dấu thẻ Leech (số lần bấm Again)',
-                        valueText: '${settings.leechThreshold} lần',
-                        value: settings.leechThreshold.toDouble(),
-                        min: 3,
-                        max: 12,
-                        divisions: 9,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(leechThreshold: v.round()),
-                        ),
-                      ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('Tự động tạm ẩn (Suspend) thẻ Leech'),
-                        subtitle: const Text(
-                          'Khi một thẻ bị quên vượt ngưỡng Leech, tự động tạm ẩn để tránh tốn thời gian ôn',
-                        ),
-                        value: settings.suspendLeeches,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(suspendLeeches: v),
-                        ),
-                      ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Hiển thị câu điền khuyết (Surface-Form Cloze) ở mặt trước',
-                        ),
-                        subtitle: const Text(
-                          'Tự động che đúng biến thể chữ xuất hiện trong câu (ví dụ câu có "running" hay "ran" đều được che chính xác dù thẻ lưu lemma "run")',
-                        ),
-                        value: settings.showClozeContext,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(showClozeContext: v),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 4. Import / Export Anki (.apkg, CSV) & Periodic Web Backup Protection
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '📦 Import / Export Anki (.apkg, CSV) & Nhắc Sao Lưu Định Kỳ',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Lần sao lưu JSON gần nhất: $lastBackupText\n'
-                        '${kIsWeb ? "⚠️ Bạn đang chạy trên trình duyệt Web (IndexedDB): dữ liệu có thể bị xóa khi dọn lịch sử duyệt web. Hãy xuất file JSON định kỳ hoặc tải lên Google Drive." : "Ứng dụng lưu trữ SQLite nội bộ và nhắc sao lưu JSON định kỳ."}',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 10),
-                      _SliderRow(
-                        label: 'Chu kỳ nhắc sao lưu JSON định kỳ',
-                        valueText: '${settings.backupReminderDays} ngày/lần',
-                        value: settings.backupReminderDays.toDouble(),
-                        min: 1,
-                        max: 14,
-                        divisions: 13,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(backupReminderDays: v.round()),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          FilledButton.icon(
-                            onPressed: _isBusy ? null : _exportBackupJson,
-                            icon: const Icon(Icons.save_alt),
-                            label: const Text(
-                              'Backup Full (JSON / Lưu Google Drive)',
-                            ),
+              // 5. Notifications & TTS Audio
+              PixelCard(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    PixelSectionHeader(
+                      title: 'THÔNG BÁO & PHÁT ÂM TTS',
+                      icon: Icons.notifications_active_outlined,
+                      accentColor: px.cyan,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Giọng mục tiêu chấm điểm phát âm',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: SegmentedButton<String>(
+                        showSelectedIcon: false,
+                        segments: const [
+                          ButtonSegment<String>(
+                            value: 'en-US',
+                            label: Text('US • Anh-Mỹ'),
                           ),
-                          FilledButton.tonalIcon(
-                            onPressed: _isBusy ? null : _exportAnkiApkg,
-                            icon: const Icon(Icons.archive_outlined),
-                            label: const Text('Xuất Anki (.apkg)'),
-                          ),
-                          FilledButton.tonalIcon(
-                            onPressed: _isBusy ? null : _exportAnkiCsv,
-                            icon: const Icon(Icons.table_chart_outlined),
-                            label: const Text('Xuất Anki (CSV/TSV)'),
-                          ),
-                          OutlinedButton.icon(
-                            onPressed: _isBusy ? null : _importFile,
-                            icon: const Icon(Icons.upload_file),
-                            label: const Text(
-                              'Nhập (.apkg / CSV / JSON Backup)',
-                            ),
+                          ButtonSegment<String>(
+                            value: 'en-GB',
+                            label: Text('UK • Anh-Anh'),
                           ),
                         ],
+                        selected: {settings.targetAccent},
+                        onSelectionChanged: (selected) {
+                          if (selected.isEmpty) return;
+                          notifier.updateSettings(
+                            settings.copyWith(targetAccent: selected.first),
+                          );
+                        },
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // 5. Notifications & Audio TTS Cache (with explicit Web vs Android support checks)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '🔔 Thông Báo Nhắc Ôn & Phát Âm TTS (${kIsWeb ? "Chế độ Web" : "Chế độ Android/Native"})',
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const Divider(height: 20),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text(
+                        'Nhắc ôn bài hàng ngày',
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: 8),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          kIsWeb
-                              ? 'Nhắc ôn bài hàng ngày (Alarm chạy ngầm chỉ hỗ trợ Android APK)'
-                              : 'Nhắc ôn bài hàng ngày (Android Alarm)',
-                        ),
-                        subtitle: Text(
-                          kIsWeb
-                              ? 'Trên Web, trình duyệt không chạy AlarmManager ngầm khi đóng tab; ứng dụng sẽ hiển thị banner nhắc khi bạn mở trang.'
-                              : 'Giờ nhắc: ${settings.reminderHour.toString().padLeft(2, '0')}:${settings.reminderMinute.toString().padLeft(2, '0')}',
-                        ),
-                        value: !kIsWeb && settings.dailyReminderEnabled,
-                        onChanged: kIsWeb
-                            ? null
-                            : (v) => notifier.updateSettings(
-                                  settings.copyWith(dailyReminderEnabled: v),
-                                ),
+                      subtitle: Text(
+                        kIsWeb
+                            ? 'Bản Web chỉ hiện thông báo khi mở trình duyệt.'
+                            : 'Giờ nhắc: ${settings.reminderHour.toString().padLeft(2, '0')}:${settings.reminderMinute.toString().padLeft(2, '0')}',
                       ),
-                      if (!kIsWeb)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: TextButton.icon(
-                            icon: const Icon(Icons.schedule),
-                            label: const Text('Đổi giờ nhắc ôn bài'),
-                            onPressed: () async {
-                              final picked = await showTimePicker(
-                                context: context,
-                                initialTime: TimeOfDay(
-                                  hour: settings.reminderHour,
-                                  minute: settings.reminderMinute,
+                      value: !kIsWeb && settings.dailyReminderEnabled,
+                      onChanged: kIsWeb
+                          ? null
+                          : (v) => notifier.updateSettings(
+                                settings.copyWith(dailyReminderEnabled: v),
+                              ),
+                    ),
+                    if (!kIsWeb)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          icon: const Icon(Icons.schedule, size: 17),
+                          label: const Text('Đổi giờ nhắc'),
+                          onPressed: () async {
+                            final picked = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay(
+                                hour: settings.reminderHour,
+                                minute: settings.reminderMinute,
+                              ),
+                            );
+                            if (picked != null) {
+                              await notifier.updateSettings(
+                                settings.copyWith(
+                                  reminderHour: picked.hour,
+                                  reminderMinute: picked.minute,
+                                  dailyReminderEnabled: true,
                                 ),
                               );
-                              if (picked != null) {
-                                await notifier.updateSettings(
-                                  settings.copyWith(
-                                    reminderHour: picked.hour,
-                                    reminderMinute: picked.minute,
-                                    dailyReminderEnabled: true,
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        ),
-                      const Divider(),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Tự động đọc phát âm khi lật thẻ',
-                        ),
-                        subtitle: Text(
-                          ttsService.isDiskCacheSupported
-                              ? 'Android/iOS: Tự động tổng hợp và lưu cache file .wav vào bộ nhớ máy để phát tức thì offline.'
-                              : 'Web: Phát âm qua Web Speech API (window.speechSynthesis) & Audio URL từ điển (Cache file .wav xuống đĩa chỉ hoạt động trên Android/iOS).',
-                        ),
-                        value: settings.autoPlayTts,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(autoPlayTts: v),
+                            }
+                          },
                         ),
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          'Tra cứu ngữ cảnh Online/LLM & Cache vào dict_cache (word, sentence_hash)',
-                        ),
-                        subtitle: const Text(
-                          'Từ ngoài từ điển SQLite hoặc khi bật Gemini Key sẽ được dịch theo câu ngữ cảnh và lưu vào dict_cache theo (từ, hash câu)',
-                        ),
-                        value: settings.enableOnlineLookup,
-                        onChanged: (v) => notifier.updateSettings(
-                          settings.copyWith(enableOnlineLookup: v),
-                        ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text(
+                        'Tự động đọc phát âm khi lật thẻ',
+                        style: TextStyle(fontWeight: FontWeight.w600),
                       ),
-                      if (ttsService.isDiskCacheSupported)
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: OutlinedButton.icon(
-                            icon: const Icon(Icons.cleaning_services_outlined),
-                            label: const Text(
-                              'Xóa bộ nhớ đệm file Audio TTS (.wav)',
-                            ),
-                            onPressed: () async {
-                              await ttsService.clearCache();
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Đã dọn bộ nhớ đệm file Audio TTS (.wav)!',
-                                  ),
+                      value: settings.autoPlayTts,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(autoPlayTts: v),
+                      ),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                      title: const Text(
+                        'Tra cứu & dịch ngữ cảnh Online',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: const Text(
+                        'Tự động dịch theo câu khi từ chưa có trong từ điển Offline.',
+                      ),
+                      value: settings.enableOnlineLookup,
+                      onChanged: (v) => notifier.updateSettings(
+                        settings.copyWith(enableOnlineLookup: v),
+                      ),
+                    ),
+                    if (ttsService.isDiskCacheSupported)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.cleaning_services_outlined),
+                          label: const Text('Xóa bộ nhớ đệm Audio TTS'),
+                          onPressed: () async {
+                            await ttsService.clearCache();
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Đã dọn bộ nhớ đệm file Audio TTS!',
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -727,27 +844,51 @@ class _SliderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(child: Text(label)),
-            Text(
-              valueText,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+    final px = PixelColors.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                valueText,
+                style: TextStyle(
+                  fontFamily: AppTheme.monoFont,
+                  fontFamilyFallback: AppTheme.fontFallback,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: px.primaryBorder,
+                ),
+              ),
+            ],
+          ),
+          SliderTheme(
+            data: Theme.of(context).sliderTheme.copyWith(
+                  thumbShape: const PixelSliderThumbShape(size: 20),
+                ),
+            child: Slider(
+              value: value.clamp(min, max),
+              min: min,
+              max: max,
+              divisions: divisions,
+              onChanged: onChanged,
             ),
-          ],
-        ),
-        Slider(
-          value: value.clamp(min, max),
-          min: min,
-          max: max,
-          divisions: divisions,
-          onChanged: onChanged,
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 }

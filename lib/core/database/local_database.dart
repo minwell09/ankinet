@@ -15,7 +15,7 @@ import 'db_factory.dart';
 /// 7. `app_settings` - Key-value store for study, backup reminder, custom FSRS weights & notification settings
 class LocalDatabase {
   static const _dbName = 'vocab_anki_graph.db';
-  static const _dbVersion = 5;
+  static const _dbVersion = 6;
 
   final String? overridePath;
   Database? _db;
@@ -156,6 +156,25 @@ class LocalDatabase {
         value TEXT NOT NULL
       )
     ''');
+
+    // 8. Pronunciation Assessment History (for average score & weak phonemes HUD)
+    await db.execute('''
+      CREATE TABLE pronunciation_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        card_id TEXT NOT NULL,
+        word TEXT NOT NULL,
+        accent TEXT NOT NULL DEFAULT 'en-US',
+        mode TEXT NOT NULL DEFAULT 'word',
+        overall_score REAL NOT NULL,
+        rank TEXT NOT NULL,
+        phonemes_json TEXT NOT NULL DEFAULT '[]',
+        diagnostic_tip TEXT NOT NULL DEFAULT '',
+        assessed_at INTEGER NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_pronunciation_logs_time ON pronunciation_logs(assessed_at)',
+    );
 
     await _createIndexes(db);
 
@@ -443,6 +462,26 @@ class LocalDatabase {
         );
       });
       await batch.commit(noResult: true);
+    }
+
+    if (oldVersion < 6) {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pronunciation_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          card_id TEXT NOT NULL,
+          word TEXT NOT NULL,
+          accent TEXT NOT NULL DEFAULT 'en-US',
+          mode TEXT NOT NULL DEFAULT 'word',
+          overall_score REAL NOT NULL,
+          rank TEXT NOT NULL,
+          phonemes_json TEXT NOT NULL DEFAULT '[]',
+          diagnostic_tip TEXT NOT NULL DEFAULT '',
+          assessed_at INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_pronunciation_logs_time ON pronunciation_logs(assessed_at)',
+      );
     }
   }
 

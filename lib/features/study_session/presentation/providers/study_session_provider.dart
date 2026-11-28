@@ -157,7 +157,11 @@ class StudySessionNotifier extends StateNotifier<StudySessionState> {
 
     if (firstReveal) {
       if (settings.autoPlayTts) {
-        ttsCacheService.speak(card.word, audioUrl: card.audioUrl);
+        ttsCacheService.speak(
+          card.word,
+          audioUrl: settings.targetAccent == 'en-US' ? card.audioUrl : '',
+          accent: settings.targetAccent,
+        );
       }
       final relatedRes = await getRelatedWordsUseCase(card.id);
       relatedRes.fold(

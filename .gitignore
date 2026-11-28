@@ -51,3 +51,5 @@ app.*.map.json
 /preview/
 /apks/
 android/local.properties
+android/.gradle/
+android/build/

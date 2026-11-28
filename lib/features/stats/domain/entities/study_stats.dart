@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../pronunciation/domain/entities/pronunciation_result.dart';
+
 class StudyStats extends Equatable {
   final int totalCards;
   final int newCardsCount;
@@ -13,6 +15,9 @@ class StudyStats extends Equatable {
   final int currentStreakDays;
   final Map<String, int> dailyReviewCounts; // YYYY-MM-DD -> count (last 180 days)
   final Map<int, int> upcomingDueByDayOffset; // 0..13 -> due count
+  final double? averagePronunciationScore; // 0.0 - 100.0 (null if never assessed)
+  final int totalPronunciationAttempts;
+  final List<WeakPhonemeStat> weakPhonemes;
 
   const StudyStats({
     required this.totalCards,
@@ -27,6 +32,9 @@ class StudyStats extends Equatable {
     required this.currentStreakDays,
     required this.dailyReviewCounts,
     required this.upcomingDueByDayOffset,
+    this.averagePronunciationScore,
+    this.totalPronunciationAttempts = 0,
+    this.weakPhonemes = const [],
   });
 
   @override
@@ -43,5 +51,8 @@ class StudyStats extends Equatable {
         currentStreakDays,
         dailyReviewCounts,
         upcomingDueByDayOffset,
+        averagePronunciationScore,
+        totalPronunciationAttempts,
+        weakPhonemes,
       ];
 }

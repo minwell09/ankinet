@@ -6,6 +6,7 @@ import '../../../../core/config/injection_container.dart';
 import '../../../../core/services/tts_cache_service.dart';
 import '../../../../core/ui/pixel_widgets.dart';
 import '../../../../core/utils/cloze_masker.dart';
+import '../../../pronunciation/presentation/widgets/speaking_coming_soon_dialog.dart';
 import '../../../stats/presentation/providers/stats_provider.dart';
 import '../../domain/entities/vocab_card.dart';
 import '../../domain/usecases/manage_cards_and_decks_usecase.dart';
@@ -91,8 +92,57 @@ class _DeckCardsPageState extends ConsumerState<DeckCardsPage> {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('QUẢN LÝ THẺ • SỬA / XÓA'),
+        title: const Text('QUẢN LÝ THẺ'),
         actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: InkWell(
+              onTap: () => showSpeakingComingSoonDialog(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5E3D26),
+                  border: Border.all(
+                    color: px.woodHighlight.withValues(alpha: 0.45),
+                    width: 1.5,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.mic_rounded, size: 15, color: px.inkOnWood),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Luyện nói',
+                      style: TextStyle(
+                        fontFamily: AppTheme.pixelDisplayFont,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: px.inkOnWood,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 1,
+                      ),
+                      color: px.primary,
+                      child: Text(
+                        'SOON',
+                        style: TextStyle(
+                          fontFamily: AppTheme.monoFont,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: px.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           IconButton(
             tooltip: 'Làm mới',
             icon: const Icon(Icons.refresh),
